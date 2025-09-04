@@ -1,0 +1,267 @@
+import React, { useState } from 'react';
+import ReactDOM from 'react-dom/client';
+
+// Icons using lucide-react. The user must include the script tag for lucide-react in their HTML.
+// This is a mock component since we're in a single file.
+const Icon = ({ name, className = "" }) => {
+  const icons = {
+    Dashboard: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+    ),
+    Calendar: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    ),
+    Wallet: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M20 7v2a1 1 0 0 0 1 1h1"/><path d="M10 12h2a2 2 0 0 0 0-4H10v4Z"/><path d="M12 16h-2a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h2v4Z"/></svg>
+    ),
+    BarChart: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    ),
+    User: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    ),
+    Star: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    ),
+    Menu: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+    ),
+    Bell: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18.8 11.2a1 1 0 0 0-.8-.2H5.2c-.4 0-.8.2-1 .5l-2.4 2.1c-.8.7-.2 2.1.8 2.1h18c1 0 1.6-1.4.8-2.1L19 11.5c-.2-.3-.6-.5-.8-.3Z"/><path d="M13.2 21a2 2 0 0 1-2.4 0"/><path d="M12 2c-.1 0-.3.1-.3.2-.2.3-.2.8-.2 1.3V5c0 1.1-.9 2-2 2h-1c-.1 0-.2.1-.2.2V9a1 1 0 0 0 1 1h4c.6 0 1.2-.2 1.6-.7"/></svg>
+    ),
+    Search: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+    )
+  };
+  return icons[name] || null;
+};
+
+// Mock data
+const mockData = {
+  stats: [
+    { title: "This Month's Revenue", value: "$7,300", change: "+19% from last month", icon: <Icon name="Wallet" className="text-white w-6 h-6" />, iconBg: "bg-emerald-400" },
+    { title: "Total Bookings", value: "25", change: "+14% from last month", icon: <Icon name="Calendar" className="text-white w-6 h-6" />, iconBg: "bg-violet-400" },
+    { title: "Active Projects", value: "8", change: "2 due this week", icon: <Icon name="BarChart" className="text-white w-6 h-6" />, iconBg: "bg-orange-400" },
+    { title: "Client Rating", value: "4.9", change: "based on 20 reviews", icon: <Icon name="Star" className="text-white w-6 h-6" />, iconBg: "bg-yellow-400" },
+  ],
+  upcomingBookings: [
+    { client: "Sarah Johnson", service: "Portrait Session", date: "2025-09-15", time: "10:00 AM", duration: "2 hours", revenue: "$450", status: "Confirmed" },
+    { client: "Mike Rodriguez", service: "Product Photography", date: "2025-09-15", time: "2:00 PM", duration: "3 hours", revenue: "$680", status: "Pending" },
+    { client: "Emma Davis", service: "Wedding Photography", date: "2025-09-16", time: "9:00 AM", duration: "8 hours", revenue: "$2,500", status: "Confirmed" },
+    { client: "James Wilson", service: "Corporate Headshots", date: "2025-09-16", time: "3:00 PM", duration: "2 hours", revenue: "$380", status: "Confirmed" },
+  ],
+};
+
+const DashboardView = () => (
+  <div className="p-6 md:p-8 space-y-8">
+    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {mockData.stats.map((stat, index) => (
+        <div key={index} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-gray-500 font-medium">{stat.title}</h3>
+            <div className={`p-2 rounded-lg ${stat.iconBg}`}>
+              {stat.icon}
+            </div>
+          </div>
+          <p className="text-3xl font-semibold text-gray-800">{stat.value}</p>
+          <p className="text-sm text-gray-400">{stat.change}</p>
+        </div>
+      ))}
+    </div>
+
+    {/* Upcoming Bookings Section */}
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-gray-800">Upcoming Bookings</h2>
+        <a href="#" className="text-blue-500 hover:underline text-sm font-medium">View All Bookings</a>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead>
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Service</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date & Time</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Duration</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Revenue</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {mockData.upcomingBookings.map((booking, index) => (
+              <tr key={index}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{booking.client}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.service}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.date} at {booking.time}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.duration}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.revenue}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${booking.status === 'Confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                    {booking.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+);
+
+const BookingsView = () => (
+  <div className="p-6 md:p-8">
+    <h2 className="text-2xl font-bold text-gray-800">My Bookings</h2>
+    <p className="mt-2 text-gray-600">This page would show a detailed list of all your bookings, both past and future.</p>
+  </div>
+);
+
+const InvoicesView = () => (
+  <div className="p-6 md:p-8">
+    <h2 className="text-2xl font-bold text-gray-800">Invoices</h2>
+    <p className="mt-2 text-gray-600">This page would list all your generated invoices for services rendered.</p>
+  </div>
+);
+
+const ProfileView = () => (
+  <div className="p-6 md:p-8">
+    <h2 className="text-2xl font-bold text-gray-800">Profile</h2>
+    <p className="mt-2 text-gray-600">Manage your profile information and account settings here.</p>
+  </div>
+);
+
+const ReviewsView = () => (
+  <div className="p-6 md:p-8">
+    <h2 className="text-2xl font-bold text-gray-800">Reviews & Complaints</h2>
+    <p className="mt-2 text-gray-600">This page would display client reviews and allow you to submit complaints.</p>
+  </div>
+);
+
+const UserDashboard = () => {
+  const [activeTab, setActiveTab] = useState('Dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'Dashboard':
+        return <DashboardView />;
+      case 'My Bookings':
+        return <BookingsView />;
+      case 'Invoices':
+        return <InvoicesView />;
+      case 'Profile':
+        return <ProfileView />;
+      case 'Reviews & Complaints':
+        return <ReviewsView />;
+      default:
+        return <DashboardView />;
+    }
+  };
+
+  const navItems = [
+    { name: "Dashboard", icon: <Icon name="Dashboard" className="w-5 h-5" /> },
+    { name: "My Bookings", icon: <Icon name="Calendar" className="w-5 h-5" /> },
+    { name: "Invoices", icon: <Icon name="Wallet" className="w-5 h-5" /> },
+    { name: "Profile", icon: <Icon name="User" className="w-5 h-5" /> },
+    { name: "Reviews & Complaints", icon: <Icon name="Star" className="w-5 h-5" /> },
+  ];
+
+  return (
+    <div className="bg-gray-100 min-h-screen font-sans">
+      <div className="relative lg:flex">
+        {/* Backdrop for mobile */}
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          ></div>
+        )}
+
+        {/* Sidebar */}
+        <div className={`fixed inset-y-0 left-0 bg-[#283149] text-white w-64 p-6 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 transition-transform duration-200 ease-in-out z-40`}>
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-2xl font-bold">StudioPro</h1>
+            <button className="lg:hidden p-2" onClick={() => setIsSidebarOpen(false)}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <nav>
+            <ul>
+              {navItems.map((item) => (
+                <li key={item.name} className="mb-2">
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveTab(item.name);
+                      setIsSidebarOpen(false); // Close sidebar on selection
+                    }}
+                    className={`flex items-center space-x-3 p-3 rounded-xl transition-colors duration-200 ${activeTab === item.name ? 'bg-[#3C4A6B] text-white' : 'text-gray-300 hover:bg-[#3C4A6B]'}`}
+                  >
+                    {item.icon}
+                    <span className="font-medium">{item.name}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 min-h-screen">
+          {/* Header */}
+          <header className="flex items-center justify-between p-6 bg-white border-b border-gray-200 shadow-sm">
+            <div className="flex items-center space-x-4">
+              {/* Mobile menu button */}
+              <button
+                className="lg:hidden p-2 rounded-md"
+                onClick={() => setIsSidebarOpen(true)}
+              >
+                <Icon name="Menu" className="w-6 h-6 text-gray-600" />
+              </button>
+              <h1 className="text-2xl font-semibold text-gray-800">Dashboard</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="relative hidden md:block">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <Icon name="Search" />
+              </div>
+              <button className="relative p-2 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 transition-colors duration-200">
+                <Icon name="Bell" className="w-6 h-6" />
+                <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
+              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                  className="flex items-center space-x-2 p-2 rounded-full bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors duration-200"
+                >
+                  <div className="h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">U</div>
+                  <span className="hidden md:inline">User Name</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 transform transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                {isProfileMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 py-2">
+                    <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Profile Settings</a>
+                    <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Sign Out</a>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          <main>
+            {renderContent()}
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+export default UserDashboard;
