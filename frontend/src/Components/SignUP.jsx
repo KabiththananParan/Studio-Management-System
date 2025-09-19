@@ -2,32 +2,32 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const SignUpForm = () => {
-  const navigate = useNavigate(); // Initialize useNavigate hook
+    const navigate = useNavigate(); // Initialize useNavigate hook
 
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    userName: '',
-    password: '',
-    confirmPassword: '',
-    agreedToTerms: false,
-  });
-  const [errors, setErrors] = useState({});
+    const [formData, setFormData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        userName: '',
+        password: '',
+        confirmPassword: '',
+        agreedToTerms: false,
+    });
+    const [errors, setErrors] = useState({});
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value,
-    });
-  };
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+    ...formData,
+    [name]: type === 'checkbox' ? checked : value,
+    });
+  };
 
-  const validate = () => {
-    let tempErrors = {};
-    if (!formData.firstName) {
-      tempErrors.firstName = 'First Name is required.';
-    }
+  const validate = () => {
+  let tempErrors = {};
+  if (!formData.firstName) {
+     tempErrors.firstName = 'First Name is required.';
+  }
     if (!formData.lastName) {
       tempErrors.lastName = 'Last Name is required.';
     }
@@ -57,6 +57,8 @@ const SignUpForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validate()) {
+         const { confirmPassword, ...dataToSend } = formData;
+         
                 const response = await fetch("http://localhost:5000/api/auth/register", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -71,8 +73,8 @@ const SignUpForm = () => {
                     }
 
 
-    }
-  };
+   }
+  };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">

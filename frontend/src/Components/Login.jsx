@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const LoginForm = () => {
+  const navigate = useNavigate(); // ✅ Move inside the component
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
@@ -22,11 +24,29 @@ const LoginForm = () => {
     return Object.keys(tempErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (validate()) {
-      // Logic for successful login, e.g., API call
-      console.log('Login successful!', { email, password });
+      try {
+        const response = await fetch("http://localhost:5000/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          console.log("Login successful!", data);
+          localStorage.setItem("token", data.token);
+
+          // ✅ Navigate to UserDashboard after login
+          navigate("/userDashboard");
+        } else {
+          setErrors({ form: data.message });
+        }
+      } catch (error) {
+        setErrors({ form: "Server error. Try again later." });
+      }
     }
   };
 
@@ -34,11 +54,10 @@ const LoginForm = () => {
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-sm">
         <h2 className="text-2xl font-bold text-center mb-10">Welcome Back!</h2>
-        
 
         <div className="flex justify-center mb-6">
           <button className="py-2 px-6 rounded-l-xl text-white bg-blue-600 font-semibold">Sign In</button>
-         <Link to="/signUP-form" className="py-2 px-6 rounded-r-xl text-gray-700 bg-gray-200 font-semibold">Sign Up</Link>
+          <Link to="/signUP-form" className="py-2 px-6 rounded-r-xl text-gray-700 bg-gray-200 font-semibold">Sign Up</Link>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -57,7 +76,6 @@ const LoginForm = () => {
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
               <label className="block text-gray-700 text-sm font-medium">Password</label>
-              
             </div>
 
             <input
@@ -70,11 +88,13 @@ const LoginForm = () => {
             {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
 
             <div>
-                <Link to="/forgot-password" className="mt-15 text-blue-600 text-sm font-medium hover:underline">
+              <Link to="/forgot-password" className="mt-2 text-blue-600 text-sm font-medium hover:underline">
                 Forgot password?
               </Link>
             </div>
           </div>
+
+          {errors.form && <p className="text-red-500 text-sm mb-2">{errors.form}</p>}
 
           <button
             type="submit"
@@ -83,8 +103,6 @@ const LoginForm = () => {
             Sign In
           </button>
         </form>
-
-        
 
         <div className="text-center mt-6 text-sm">
           <p className="text-gray-500">Need help? <a href="#" className="text-blue-600 hover:underline">Contact Support</a></p>
