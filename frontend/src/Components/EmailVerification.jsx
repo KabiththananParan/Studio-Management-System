@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom'; // 👈 Import useLocation
+import { Link, useNavigate, useLocation } from 'react-router-dom'; 
 
 const EmailVerification = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // 👈 Initialize useLocation hook
+  const location = useLocation(); 
 
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');

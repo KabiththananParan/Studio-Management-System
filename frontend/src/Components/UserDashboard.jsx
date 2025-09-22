@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
+
+import ProfileView from '../User/ProfileView';
 
 // Icons using lucide-react. The user must include the script tag for lucide-react in their HTML.
 // This is a mock component since we're in a single file.
@@ -36,26 +38,12 @@ const Icon = ({ name, className = "" }) => {
   return icons[name] || null;
 };
 
-// Mock data
-const mockData = {
-  stats: [
-    { title: "This Month's Revenue", value: "$7,300", change: "+19% from last month", icon: <Icon name="Wallet" className="text-white w-6 h-6" />, iconBg: "bg-emerald-400" },
-    { title: "Total Bookings", value: "25", change: "+14% from last month", icon: <Icon name="Calendar" className="text-white w-6 h-6" />, iconBg: "bg-violet-400" },
-    { title: "Active Projects", value: "8", change: "2 due this week", icon: <Icon name="BarChart" className="text-white w-6 h-6" />, iconBg: "bg-orange-400" },
-    { title: "Client Rating", value: "4.9", change: "based on 20 reviews", icon: <Icon name="Star" className="text-white w-6 h-6" />, iconBg: "bg-yellow-400" },
-  ],
-  upcomingBookings: [
-    { client: "Sarah Johnson", service: "Portrait Session", date: "2025-09-15", time: "10:00 AM", duration: "2 hours", revenue: "$450", status: "Confirmed" },
-    { client: "Mike Rodriguez", service: "Product Photography", date: "2025-09-15", time: "2:00 PM", duration: "3 hours", revenue: "$680", status: "Pending" },
-    { client: "Emma Davis", service: "Wedding Photography", date: "2025-09-16", time: "9:00 AM", duration: "8 hours", revenue: "$2,500", status: "Confirmed" },
-    { client: "James Wilson", service: "Corporate Headshots", date: "2025-09-16", time: "3:00 PM", duration: "2 hours", revenue: "$380", status: "Confirmed" },
-  ],
-};
+
 
 const DashboardView = () => (
   <div className="p-6 md:p-8 space-y-8">
     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      {mockData.stats.map((stat, index) => (
+      {/* {mockData.stats.map((stat, index) => (
         <div key={index} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-gray-500 font-medium">{stat.title}</h3>
@@ -66,7 +54,7 @@ const DashboardView = () => (
           <p className="text-3xl font-semibold text-gray-800">{stat.value}</p>
           <p className="text-sm text-gray-400">{stat.change}</p>
         </div>
-      ))}
+      ))} */}
     </div>
 
     {/* Upcoming Bookings Section */}
@@ -88,20 +76,7 @@ const DashboardView = () => (
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {mockData.upcomingBookings.map((booking, index) => (
-              <tr key={index}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{booking.client}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.service}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.date} at {booking.time}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.duration}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking.revenue}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${booking.status === 'Confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                    {booking.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            
           </tbody>
         </table>
       </div>
@@ -123,12 +98,8 @@ const InvoicesView = () => (
   </div>
 );
 
-const ProfileView = () => (
-  <div className="p-6 md:p-8">
-    <h2 className="text-2xl font-bold text-gray-800">Profile</h2>
-    <p className="mt-2 text-gray-600">Manage your profile information and account settings here.</p>
-  </div>
-);
+
+
 
 const ReviewsView = () => (
   <div className="p-6 md:p-8">
@@ -141,6 +112,42 @@ const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [user, setUser] = useState(null); // ✅ Added user state
+  const [loadingUser, setLoadingUser] = useState(true); // Optional: for loading state
+
+   // Fetch user profile
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await fetch("http://localhost:5000/api/user/me", {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch user");
+        const data = await res.json();
+        setUser(data); // ✅ Save user data
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  const handleSignOut = () => {
+  localStorage.removeItem("token"); // Remove auth token
+  window.location.href = "/";   // Redirect to login page
+  };
+
+
 
   const renderContent = () => {
     switch (activeTab) {
@@ -241,15 +248,30 @@ const UserDashboard = () => {
                   className="flex items-center space-x-2 p-2 rounded-full bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors duration-200"
                 >
                   <div className="h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">U</div>
-                  <span className="hidden md:inline">User Name</span>
+                  <span className="hidden md:inline">{loadingUser ? "Loading..." : user?.email}</span> 
+
                   <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 transform transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
-                {isProfileMenuOpen && (
+
+
+               {isProfileMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 py-2">
-                    <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Profile Settings</a>
-                    <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Sign Out</a>
+          
+                    <a href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleSignOut(); // ✅ Call signOut function
+                        }}
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                        Sign Out
+                    </a>
+
+
                   </div>
                 )}
+
+
+
               </div>
             </div>
           </header>
