@@ -269,3 +269,40 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ message: "Server error. Please try again later." });
   }
 };
+
+// 📌 Verify Token
+export const verifyToken = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    // Verify JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Check if user still exists
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ 
+      message: "Token is valid", 
+      user: { 
+        id: user._id, 
+        email: user.email, 
+        name: user.firstName + " " + user.lastName 
+      } 
+    });
+
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
+    
+    console.error("Token verification error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

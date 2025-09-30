@@ -39,6 +39,8 @@ const LoginForm = () => {
         if (response.ok) {
           console.log("Login successful!", data);
           localStorage.setItem("token", data.token);
+          // Set active session flag to indicate user is genuinely logged in
+          sessionStorage.setItem("activeSession", "true");
 
           // ✅ Navigate to UserDashboard after login
           navigate("/userDashboard");
