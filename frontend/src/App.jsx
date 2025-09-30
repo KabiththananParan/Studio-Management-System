@@ -13,6 +13,7 @@ import Blog from './Components/Blog';
 import EmailVerification from './Components/EmailVerification';
 import UserDashboard from './Components/UserDashboard';
 import AdminDashboard from './Components/AdminDashboard';
+import AdminLogin from './Components/Admin/AdminLogin';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -32,6 +33,7 @@ function App() {
         <Route path="/forgot-password" element={<PasswordResetForm />} />
         <Route path="/userDashboard" element={<UserDashboard />} />
         <Route path="/adminDashboard" element={<AdminDashboard />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
       </Routes>
     </Router>
   )

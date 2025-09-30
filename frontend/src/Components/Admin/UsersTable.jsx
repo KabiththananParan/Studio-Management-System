@@ -6,21 +6,49 @@ const UsersTable = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const token = localStorage.getItem("token"); // Make sure admin token is stored
-
   // Fetch all users
   const fetchUsers = async () => {
     setLoading(true);
-    try {
-      const res = await axios.get("http://localhost:5000/api/admin/users", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUsers(res.data);
-      setError("");
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Failed to fetch users");
+    const token = localStorage.getItem("token");
+    
+    if (!token) {
+      setError("No authentication token found. Please log in again.");
+      setLoading(false);
+      return;
     }
+
+    // Try different endpoints to find the correct one
+    const endpoints = [
+      "http://localhost:5000/api/admin/users",
+      "http://localhost:5000/api/users",
+      "http://localhost:5000/api/admin/dashboard", // Test if admin routes work at all
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Trying: ${endpoint}`);
+        const res = await axios.get(endpoint, {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+        });
+        
+        console.log(`Success with: ${endpoint}`, res.data);
+        if (endpoint.includes('/users')) {
+          setUsers(res.data);
+        } else {
+          console.log("Admin access confirmed, but wrong endpoint");
+        }
+        setError("");
+        setLoading(false);
+        return;
+      } catch (err) {
+        console.log(`Failed: ${endpoint}`, err.response?.status, err.response?.data?.message);
+      }
+    }
+    
+    setError("Could not fetch users from any endpoint. Check backend setup.");
     setLoading(false);
   };
 
@@ -31,36 +59,78 @@ const UsersTable = () => {
   // Delete user
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
+    
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("No authentication token found. Please log in again.");
+      return;
+    }
+
     try {
       await axios.delete(`http://localhost:5000/api/admin/users/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
       });
       setUsers(users.filter((user) => user._id !== id));
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete user");
+      if (err.response?.status === 401) {
+        localStorage.removeToken("token");
+        setError("Session expired. Please log in again.");
+      } else {
+        alert(err.response?.data?.message || "Failed to delete user");
+      }
     }
   };
 
-  // Simple edit handler (you can expand with a modal/form)
+  // Simple edit handler
   const handleEdit = async (id) => {
     const firstName = prompt("Enter new first name:");
     if (!firstName) return;
+    
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("No authentication token found. Please log in again.");
+      return;
+    }
+
     try {
       const res = await axios.put(
         `http://localhost:5000/api/admin/users/${id}`,
         { firstName },
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
         }
       );
       setUsers(users.map((u) => (u._id === id ? res.data : u)));
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to update user");
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        setError("Session expired. Please log in again.");
+      } else {
+        alert(err.response?.data?.message || "Failed to update user");
+      }
     }
   };
 
   if (loading) return <p>Loading users...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (error) return (
+    <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
+      <p className="text-red-500">{error}</p>
+      {error.includes("log in again") && (
+        <button 
+          onClick={() => window.location.href = "/admin-login"}
+          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Go to Login
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-200">

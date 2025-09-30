@@ -7,6 +7,7 @@ import userRoutes from "./routes/user.js";
 import cors from "cors";
 import router from "./routes/userRoutes.js";
 import adminUsersRoutes from "./routes/adminUsers.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 
 
@@ -18,9 +19,10 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
-app.use("/api/user", router); 
 
 app.use("/api/admin/users", adminUsersRoutes);
+
+app.use("/api/auth/admin", adminRoutes);
 
 
 const PORT = process.env.PORT || 5000;
