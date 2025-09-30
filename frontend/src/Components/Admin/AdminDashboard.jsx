@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import Sidebar from './Admin/Sidebar';
-import Header from './Admin/Header';
-import UsersTable from './Admin/UsersTable';
+import Sidebar from './Sidebar';
+import Header from '../Header';
+import UsersTable from './UsersTable';
 
 
 export default function AdminDashboard() {

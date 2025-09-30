@@ -1,18 +1,18 @@
 import { useState } from 'react'
 import './App.css'
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
-import LoginForm from './Components/Login'
-import PasswordResetForm from './Components/ForgotPassword';
-import SignUpForm from './Components/SignUP';
+import LoginForm from './Components/Auth/Login'
+import PasswordResetForm from './Components/Auth/ForgotPassword';
+import SignUpForm from './Components/Auth/SignUP';
 import Home from './Components/Home';
 import About from './Components/About';
 import Contact from './Components/Contact';
 import Features from './Components/Features';
 import FAQ from './Components/FAQ';
 import Blog from './Components/Blog';
-import EmailVerification from './Components/EmailVerification';
+import EmailVerification from './Components/Auth/EmailVerification';
 import UserDashboard from './Components/UserDashboard';
-import AdminDashboard from './Components/AdminDashboard';
+import AdminDashboard from './Components/Admin/AdminDashboard';
 import AdminLogin from './Components/Admin/AdminLogin';
 
 import { studioPackages } from '../src/Components/Booking/data/constants';
