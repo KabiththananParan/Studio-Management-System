@@ -113,16 +113,11 @@ const AppContent = () => {
       {/* Routes for booking */}
       <Route 
         path="/booking" 
-        element={<HomePage onPackageSelect={handlePackageSelect} />} 
+        element={<BookingPage onSlotSelect={handleSlotSelect} />} 
       />
       <Route 
         path="/booking/:packageId" 
-        element={
-          <BookingPage 
-            packages={studioPackages} 
-            onSlotSelect={handleSlotSelect}
-          />
-        } 
+        element={<BookingPage onSlotSelect={handleSlotSelect} />} 
       />
       <Route 
         path="/customer-details" 

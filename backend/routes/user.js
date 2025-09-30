@@ -1,5 +1,6 @@
 import express from "express";
 import User from "../models/User.js";
+import Package from "../models/Package.js";
 import { protect } from "../middleware/authMiddleware.js";
 import bcrypt from "bcryptjs";
 
@@ -61,6 +62,21 @@ router.delete("/delete", protect, async (req, res) => {
     if (!deletedUser) return res.status(404).json({ message: "User not found" });
     res.json({ message: "Account deleted successfully" });
   } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+/**
+ * @route   GET /api/user/packages
+ * @desc    Get all active packages for public viewing
+ * @access  Public
+ */
+router.get("/packages", async (req, res) => {
+  try {
+    const packages = await Package.find({ isActive: true }).sort({ createdAt: -1 });
+    res.json(packages);
+  } catch (err) {
+    console.error("Error fetching packages:", err);
     res.status(500).json({ message: "Server error" });
   }
 });

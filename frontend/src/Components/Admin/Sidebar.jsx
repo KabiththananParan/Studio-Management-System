@@ -12,7 +12,7 @@ export default function Sidebar({ activeView, setActiveView }) {
           {[
             { name: 'Dashboard', key: 'dashboard' },
             { name: 'Users', key: 'users' },
-            { name: 'Studios', key: 'studios' },
+            { name: 'Packages', key: 'packages' },
             { name: 'All Bookings', key: 'bookings' },
             { name: 'Payments', key: 'payments' },
           ].map(item => (
