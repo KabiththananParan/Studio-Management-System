@@ -1,15 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { ArrowLeft, Calendar, Clock, AlertCircle, CheckCircle, Users, DollarSign } from 'lucide-react';
-import { generateTimeSlots } from '../../data/constants';
 import { validators, businessRules } from '../../utils/validation';
 
 const SlotSelection = ({ onBack, onSlotSelect, selectedPackage, existingBookings = [] }) => {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedSlot, setSelectedSlot] = useState(null);
-  const [slots] = useState(generateTimeSlots());
+  const [slots, setSlots] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [isValidating, setIsValidating] = useState(false);
+
+  // Fetch available slots from backend
+  useEffect(() => {
+    if (selectedPackage?.id) {
+      fetchAvailableSlots();
+    }
+  }, [selectedPackage]);
+
+  const fetchAvailableSlots = async () => {
+    if (!selectedPackage?.id) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/user/slots/${selectedPackage.id}`, {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch available slots');
+      }
+
+      const data = await response.json();
+      // Transform backend slots to match component format
+      const transformedSlots = data.slots?.map(slot => ({
+        id: slot._id,
+        date: slot.date.split('T')[0], // Extract date part
+        time: slot.startTime,
+        endTime: slot.endTime,
+        price: slot.price,
+        available: slot.isAvailable && slot.status === 'available',
+        duration: calculateDuration(slot.startTime, slot.endTime),
+        capacity: 10, // Default capacity
+        isPremium: slot.price > 80 // Mark high-price slots as premium
+      })) || [];
+
+      setSlots(transformedSlots);
+    } catch (err) {
+      console.error('Error fetching slots:', err);
+      setErrors({ general: 'Failed to load available time slots. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateDuration = (startTime, endTime) => {
+    const start = new Date(`2000-01-01T${startTime}:00`);
+    const end = new Date(`2000-01-01T${endTime}:00`);
+    return Math.round((end - start) / (1000 * 60 * 60)); // Duration in hours
+  };
   
   // Validation and filtering logic
   const validateDateSelection = (date) => {
@@ -203,19 +254,44 @@ const SlotSelection = ({ onBack, onSlotSelect, selectedPackage, existingBookings
           </div>
         </div>
 
-        {/* Date Selection */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <Calendar className="w-5 h-5 mr-2 text-purple-600" />
-              Available Dates
-            </h3>
-            <div className="text-sm text-gray-600">
-              {availableDates.length} dates available
-            </div>
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading available time slots...</p>
           </div>
-          
-          {availableDates.length === 0 ? (
+        )}
+
+        {/* Error State */}
+        {errors.general && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center text-red-700">
+              <AlertCircle className="w-5 h-5 mr-2" />
+              <span className="font-medium">{errors.general}</span>
+            </div>
+            <button
+              onClick={fetchAvailableSlots}
+              className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        {/* Date Selection */}
+        {!loading && !errors.general && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-purple-600" />
+                Available Dates
+              </h3>
+              <div className="text-sm text-gray-600">
+                {availableDates.length} dates available
+              </div>
+            </div>
+            
+            {availableDates.length === 0 ? (
             <div className="text-center py-8 bg-gray-50 rounded-lg">
               <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600">No available dates found</p>
@@ -260,10 +336,11 @@ const SlotSelection = ({ onBack, onSlotSelect, selectedPackage, existingBookings
               )}
             </>
           )}
-        </div>
+          </div>
+        )}
 
         {/* Time Slots */}
-        {selectedDate && (
+        {!loading && !errors.general && selectedDate && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">

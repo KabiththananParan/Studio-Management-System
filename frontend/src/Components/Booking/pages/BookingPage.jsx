@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useParams, useNavigate } from 'react-router-dom';
-import { SlotSelection } from '../components';
+import UserSlotsSelector from '../components/UserSlotsSelector';
 import { Clock, Star, ArrowRight } from 'lucide-react';
 
 const BookingPage = ({ onSlotSelect }) => {
@@ -63,7 +63,7 @@ const BookingPage = ({ onSlotSelect }) => {
     }
 
     return (
-      <SlotSelection 
+      <UserSlotsSelector 
         selectedPackage={selectedPackage}
         onBack={() => navigate('/booking')}
         onSlotSelect={(slot) => onSlotSelect(selectedPackage, slot)}
