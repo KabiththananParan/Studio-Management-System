@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import UsersTable from './UsersTable';
 import PackagesTable from './PackagesTable';
+import SlotsTable from './SlotsTable';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -81,6 +82,8 @@ const AdminDashboard = () => {
         return <UsersTable />;
       case 'packages':
         return <PackagesTable />;
+      case 'slots':
+        return <SlotsTable />;
       case 'dashboard':
         if (loading) {
           return (
@@ -185,6 +188,12 @@ const AdminDashboard = () => {
                     className="w-full text-left px-3 py-2 rounded-lg bg-green-100 hover:bg-green-200 text-green-800 transition"
                   >
                     Manage Packages →
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('slots')}
+                    className="w-full text-left px-3 py-2 rounded-lg bg-yellow-100 hover:bg-yellow-200 text-yellow-800 transition"
+                  >
+                    Manage Slots →
                   </button>
                   <button 
                     onClick={() => setActiveTab('bookings')}
@@ -337,6 +346,20 @@ const AdminDashboard = () => {
                   }`}
                 >
                   📦 Packages
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => setActiveTab('slots')}
+                  className={`w-full text-left px-4 py-2 rounded-lg transition ${
+                    activeTab === 'slots'
+                      ? 'bg-blue-500 text-white'
+                      : isDarkMode 
+                        ? 'text-gray-300 hover:bg-gray-700' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  🕒 Slots
                 </button>
               </li>
               <li>

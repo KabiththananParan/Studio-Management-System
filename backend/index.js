@@ -9,6 +9,7 @@ import router from "./routes/userRoutes.js";
 import adminUsersRoutes from "./routes/adminUsers.js";
 import adminPackagesRoutes from "./routes/adminPackages.js";
 import adminDashboardRoutes from "./routes/adminDashboard.js";
+import adminSlotsRoutes from "./routes/adminSlots.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
 
@@ -25,6 +26,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/admin/users", adminUsersRoutes);
 app.use("/api/admin/packages", adminPackagesRoutes);
 app.use("/api/admin/dashboard", adminDashboardRoutes);
+app.use("/api/admin/slots", adminSlotsRoutes);
 
 app.use("/api/auth/admin", adminRoutes);
 
