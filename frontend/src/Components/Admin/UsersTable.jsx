@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const UsersTable = () => {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState([]); // Ensure it's always an array
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -105,7 +105,9 @@ const UsersTable = () => {
         },
       });
       
-      setUsers(res.data);
+      // Ensure we always set an array
+      const usersData = Array.isArray(res.data) ? res.data : res.data?.users || [];
+      setUsers(usersData);
       setError("");
       setLoading(false);
     } catch (err) {
@@ -118,6 +120,7 @@ const UsersTable = () => {
       } else {
         setError(err.response?.data?.message || "Failed to fetch users. Please try again.");
       }
+      setUsers([]); // Ensure users is always an array even on error
       setLoading(false);
     }
   };
@@ -143,7 +146,7 @@ const UsersTable = () => {
           "Content-Type": "application/json"
         },
       });
-      setUsers(users.filter((user) => user._id !== id));
+      setUsers((prevUsers) => Array.isArray(prevUsers) ? prevUsers.filter((user) => user._id !== id) : []);
     } catch (err) {
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
@@ -278,7 +281,7 @@ const UsersTable = () => {
         }
       );
 
-      setUsers(users.map((u) => (u._id === editingUser._id ? res.data : u)));
+      setUsers((prevUsers) => Array.isArray(prevUsers) ? prevUsers.map((u) => (u._id === editingUser._id ? res.data : u)) : []);
       setShowEditModal(false);
       setEditingUser(null);
       resetForm();
@@ -356,7 +359,7 @@ const UsersTable = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
+            {Array.isArray(users) && users.map((user) => (
               <tr key={user._id}>
                 <td className="px-6 py-4">{user.firstName} {user.lastName}</td>
                 <td className="px-6 py-4">{user.email}</td>
@@ -380,7 +383,7 @@ const UsersTable = () => {
                 </td>
               </tr>
             ))}
-            {users.length === 0 && (
+            {Array.isArray(users) && users.length === 0 && (
               <tr>
                 <td colSpan="5" className="text-center py-4 text-gray-500">
                   No users found.
