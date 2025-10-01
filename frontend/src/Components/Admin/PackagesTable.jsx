@@ -37,7 +37,9 @@ const PackagesTable = () => {
         },
       });
       
-      setPackages(res.data);
+      // Ensure we always have an array
+      const packagesData = Array.isArray(res.data) ? res.data : [];
+      setPackages(packagesData);
       setError("");
       setLoading(false);
     } catch (err) {
@@ -106,7 +108,7 @@ const PackagesTable = () => {
         }
       );
       
-      setPackages([...packages, res.data]);
+      setPackages(Array.isArray(packages) ? [...packages, res.data] : [res.data]);
       setShowModal(false);
       setIsAddMode(false);
       setNewPackage({
@@ -147,7 +149,7 @@ const PackagesTable = () => {
           "Content-Type": "application/json"
         },
       });
-      setPackages(packages.filter((pkg) => pkg._id !== id));
+      setPackages(Array.isArray(packages) ? packages.filter((pkg) => pkg._id !== id) : []);
       alert("Package deleted successfully!");
     } catch (err) {
       if (err.response?.status === 401) {
@@ -248,7 +250,7 @@ const PackagesTable = () => {
         }
       );
       
-      setPackages(packages.map((pkg) => (pkg._id === editingPackage._id ? res.data : pkg)));
+      setPackages(Array.isArray(packages) ? packages.map((pkg) => (pkg._id === editingPackage._id ? res.data : pkg)) : [res.data]);
       setShowModal(false);
       setEditingPackage(null);
       alert("Package updated successfully!");
@@ -282,7 +284,7 @@ const PackagesTable = () => {
         }
       );
       
-      setPackages(packages.map((pkg) => (pkg._id === id ? res.data : pkg)));
+      setPackages(Array.isArray(packages) ? packages.map((pkg) => (pkg._id === id ? res.data : pkg)) : [res.data]);
     } catch (err) {
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
@@ -366,7 +368,7 @@ const PackagesTable = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {packages.map((pkg) => (
+            {Array.isArray(packages) && packages.map((pkg) => (
               <tr key={pkg._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 font-medium text-gray-900">{pkg.name}</td>
                 <td className="px-6 py-4">
@@ -414,7 +416,7 @@ const PackagesTable = () => {
                 </td>
               </tr>
             ))}
-            {packages.length === 0 && (
+            {(!Array.isArray(packages) || packages.length === 0) && (
               <tr>
                 <td colSpan="7" className="text-center py-12">
                   <div className="flex flex-col items-center">

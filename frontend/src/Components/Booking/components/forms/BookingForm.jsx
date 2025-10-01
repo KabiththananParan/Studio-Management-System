@@ -257,19 +257,18 @@ const BookingForm = ({ selectedPackage, selectedSlot, onBack, onNext }) => {
         if (response.ok) {
           console.log('Booking created successfully:', responseData);
           
-          // Show success message and redirect to dashboard after a short delay
+          // Clear any errors
           setErrors(prev => ({ 
             ...prev, 
             general: null 
           }));
           
-          // Show success state
-          alert(`Booking created successfully! Reference: ${responseData.booking?.bookingReference || 'N/A'}\n\nYou will be redirected to your dashboard where you can complete the payment.`);
-          
-          // Redirect to user dashboard after 2 seconds
-          setTimeout(() => {
-            window.location.href = '/userDashboard';
-          }, 2000);
+          // Navigate to payment page with the new booking ID
+          onNext({
+            ...formData,
+            newBookingId: responseData.booking._id,
+            bookingReference: responseData.booking.bookingReference
+          });
         } else {
           console.error('Booking creation failed:', responseData);
           setErrors(prev => ({ 

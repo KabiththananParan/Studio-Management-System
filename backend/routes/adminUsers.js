@@ -65,8 +65,9 @@ router.post("/", protect, admin, async (req, res) => {
 router.get("/", protect, admin, async (req, res) => {
   try {
     const users = await User.find().select("-password");
-    res.json(users);
+    res.json({ success: true, users });
   } catch (err) {
+    console.error("Error fetching users:", err);
     res.status(500).json({ message: "Server error" });
   }
 });

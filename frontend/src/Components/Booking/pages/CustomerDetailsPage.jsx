@@ -27,7 +27,8 @@ const CustomerDetailsPage = () => {
       state: {
         selectedPackage,
         selectedSlot,
-        bookingDetails
+        bookingDetails,
+        newBookingId: bookingDetails.newBookingId
       }
     });
   };

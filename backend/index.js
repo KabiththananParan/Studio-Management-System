@@ -12,15 +12,24 @@ import adminUsersRoutes from "./routes/adminUsers.js";
 import adminPackagesRoutes from "./routes/adminPackages.js";
 import adminDashboardRoutes from "./routes/adminDashboard.js";
 import adminSlotsRoutes from "./routes/adminSlots.js";
+import adminBookingsRoutes from "./routes/adminBookings.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
 
 
-connectDB();
-
+// Initialize app first
 const app = express();
+
+// Connect to database (async)
+connectDB().catch(console.error);
 app.use(cors());
 app.use(express.json());
+
+// Health check route
+app.get('/', (req, res) => {
+  res.json({ message: 'Server is running!', timestamp: new Date() });
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
@@ -31,9 +40,33 @@ app.use("/api/admin/users", adminUsersRoutes);
 app.use("/api/admin/packages", adminPackagesRoutes);
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/admin/slots", adminSlotsRoutes);
+app.use("/api/admin/bookings", adminBookingsRoutes);
+
+// Debug: Add logging for payment routes
+console.log("Registering payment routes at /api/payments");
+app.use("/api/payments", paymentRoutes);
 
 app.use("/api/auth/admin", adminRoutes);
 
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const server = app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Server available at http://localhost:${PORT}`);
+});
+
+server.on('error', (err) => {
+  console.error('Server error:', err);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
+  server.close(() => {
+    process.exit(1);
+  });
+});

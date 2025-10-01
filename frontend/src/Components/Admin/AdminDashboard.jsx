@@ -3,6 +3,7 @@ import axios from 'axios';
 import UsersTable from './UsersTable';
 import PackagesTable from './PackagesTable';
 import SlotsTable from './SlotsTable';
+import AdminBookings from './AdminBookings';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -213,12 +214,7 @@ const AdminDashboard = () => {
           </div>
         );
       case 'bookings':
-        return (
-          <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-900'} p-6 rounded-2xl shadow-md border`}>
-            <h2 className="text-xl font-bold mb-4">Bookings Management</h2>
-            <p>Bookings functionality coming soon...</p>
-          </div>
-        );
+        return <AdminBookings isDarkMode={isDarkMode} />;
       case 'settings':
         return (
           <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-900'} p-6 rounded-2xl shadow-md border`}>

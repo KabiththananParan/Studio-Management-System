@@ -42,7 +42,7 @@ const bookingSchema = new mongoose.Schema({
   // Payment Information
   paymentMethod: { 
     type: String, 
-    enum: ['card', 'wallet', 'bank', 'cash'], 
+    enum: ['card', 'credit_card', 'debit_card', 'bank_transfer', 'cash'], 
     default: 'card' 
   },
   paymentStatus: { 
@@ -50,7 +50,24 @@ const bookingSchema = new mongoose.Schema({
     enum: ['pending', 'completed', 'failed', 'refunded'], 
     default: 'pending' 
   },
-  paymentId: { type: String }, // Transaction ID from payment gateway
+  paymentDetails: {
+    transactionId: { type: String }, // Transaction ID from payment gateway
+    paymentId: { type: String }, // Internal payment ID
+    gateway: { type: String }, // Payment gateway used (stripe, paypal, etc.)
+    method: { type: String }, // Specific payment method
+    amount: { type: Number }, // Amount processed
+    currency: { type: String, default: 'USD' },
+    processedAt: { type: Date }, // When payment was processed
+    instructions: { type: String }, // Payment instructions (for bank transfer, cash)
+    failureReason: { type: String }, // Reason for payment failure
+    attemptedAt: { type: Date }, // When payment was attempted
+    adminNotes: [{ // Admin notes for manual payment updates
+      note: String,
+      updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      updatedAt: { type: Date, default: Date.now }
+    }]
+  },
+  paymentCompletedAt: { type: Date }, // Timestamp when payment was completed
   
   // Booking Status
   bookingStatus: { 
@@ -62,6 +79,18 @@ const bookingSchema = new mongoose.Schema({
   // Additional Information
   specialRequests: { type: String, default: "" },
   notes: { type: String, default: "" },
+  
+  // Admin Tracking
+  createdBy: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: false // For admin-created bookings
+  },
+  updatedBy: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: false // For admin updates
+  },
   
   // Timestamps
   bookedAt: { type: Date, default: Date.now },
