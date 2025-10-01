@@ -46,12 +46,6 @@ const Icon = ({ name, className = "" }) => {
     ),
     Moon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-    ),
-    Sun: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-    ),
-    Moon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     )
   };
   return icons[name] || null;
@@ -62,39 +56,38 @@ const Icon = ({ name, className = "" }) => {
 const DashboardView = ({ isDarkMode = false }) => (
   <div className="p-6 md:p-8 space-y-8">
     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      {/* {mockData.stats.map((stat, index) => (
-        <div key={index} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+      {/* Stat cards would go here with dark mode support
+        <div key={index} className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-6 rounded-2xl shadow-sm border`}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-gray-500 font-medium">{stat.title}</h3>
+            <h3 className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} font-medium`}>{stat.title}</h3>
             <div className={`p-2 rounded-lg ${stat.iconBg}`}>
               {stat.icon}
             </div>
           </div>
-          <p className="text-3xl font-semibold text-gray-800">{stat.value}</p>
-          <p className="text-sm text-gray-400">{stat.change}</p>
-        </div>
-      ))} */}
+          <p className={`text-3xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{stat.value}</p>
+          <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>{stat.change}</p>
+        </div> */}
     </div>
 
     {/* Upcoming Bookings Section */}
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+    <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-6 rounded-2xl shadow-sm border transition-colors duration-300`}>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-800">Upcoming Bookings</h2>
+        <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Upcoming Bookings</h2>
         <a href="#" className="text-blue-500 hover:underline text-sm font-medium">View All Bookings</a>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className={`min-w-full divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
           <thead>
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Service</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date & Time</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Duration</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Revenue</th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+              <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Client</th>
+              <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Service</th>
+              <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Date & Time</th>
+              <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Duration</th>
+              <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Revenue</th>
+              <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Status</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className={`${isDarkMode ? 'bg-gray-800 divide-gray-700' : 'bg-white divide-gray-200'}`}>
             
           </tbody>
         </table>
