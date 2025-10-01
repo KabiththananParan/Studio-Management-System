@@ -4,6 +4,7 @@ import UsersTable from './UsersTable';
 import PackagesTable from './PackagesTable';
 import SlotsTable from './SlotsTable';
 import AdminBookings from './AdminBookings';
+import AdminRefunds from './AdminRefunds';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -85,6 +86,8 @@ const AdminDashboard = () => {
         return <PackagesTable />;
       case 'slots':
         return <SlotsTable />;
+      case 'refunds':
+        return <AdminRefunds />;
       case 'dashboard':
         if (loading) {
           return (
@@ -201,6 +204,12 @@ const AdminDashboard = () => {
                     className="w-full text-left px-3 py-2 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-800 transition"
                   >
                     View Bookings →
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('refunds')}
+                    className="w-full text-left px-3 py-2 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-800 transition"
+                  >
+                    Manage Refunds →
                   </button>
                   <button 
                     onClick={fetchDashboardStats}
@@ -370,6 +379,20 @@ const AdminDashboard = () => {
                   }`}
                 >
                   📅 Bookings
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => setActiveTab('refunds')}
+                  className={`w-full text-left px-4 py-2 rounded-lg transition ${
+                    activeTab === 'refunds'
+                      ? 'bg-blue-500 text-white'
+                      : isDarkMode 
+                        ? 'text-gray-300 hover:bg-gray-700' 
+                        : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  💳 Refunds
                 </button>
               </li>
               <li>

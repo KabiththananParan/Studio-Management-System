@@ -396,5 +396,124 @@ export const getBookingById = async (req, res) => {
   }
 };
 
+// @desc    Update booking details
+// @route   PUT /api/user/bookings/:id
+// @access  Private
+export const updateBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { customerInfo, slot } = req.body;
+
+    // Find the booking and verify ownership
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // Verify the user owns this booking
+    if (booking.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to update this booking" });
+    }
+
+    // Check if booking can be updated (not cancelled or completed)
+    if (booking.bookingStatus === 'cancelled') {
+      return res.status(400).json({ message: "Cannot update a cancelled booking" });
+    }
+
+    if (booking.bookingStatus === 'completed') {
+      return res.status(400).json({ message: "Cannot update a completed booking" });
+    }
+
+    // Update customer information if provided
+    if (customerInfo) {
+      if (customerInfo.name) booking.customerInfo.name = customerInfo.name;
+      if (customerInfo.email) booking.customerInfo.email = customerInfo.email;
+      if (customerInfo.phone) booking.customerInfo.phone = customerInfo.phone;
+    }
+
+    // Update slot information if provided
+    if (slot) {
+      if (slot.date) booking.slot.date = new Date(slot.date);
+      if (slot.time) booking.slot.time = slot.time;
+    }
+
+    // Update the updated timestamp
+    booking.updatedAt = new Date();
+
+    // Save the updated booking
+    await booking.save();
+
+    // Return the updated booking with populated fields
+    const updatedBooking = await Booking.findById(booking._id)
+      .populate('packageId', 'name price description features')
+      .populate('slotId', 'date startTime endTime')
+      .populate('userId', 'firstName lastName email');
+
+    res.json({
+      success: true,
+      message: "Booking updated successfully",
+      booking: {
+        _id: updatedBooking._id,
+        customerInfo: updatedBooking.customerInfo,
+        slot: updatedBooking.slot,
+        package: updatedBooking.packageId,
+        totalAmount: updatedBooking.totalAmount,
+        paymentStatus: updatedBooking.paymentStatus,
+        bookingStatus: updatedBooking.bookingStatus,
+        paymentMethod: updatedBooking.paymentMethod,
+        createdAt: updatedBooking.createdAt,
+        updatedAt: updatedBooking.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error("Error updating booking:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// @desc    Delete booking
+// @route   DELETE /api/user/bookings/:id
+// @access  Private
+export const deleteBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the booking and verify ownership
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // Verify the user owns this booking
+    if (booking.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized to delete this booking" });
+    }
+
+    // Check if booking can be deleted (only pending or confirmed bookings that haven't been paid)
+    if (booking.bookingStatus === 'completed') {
+      return res.status(400).json({ 
+        message: "Cannot delete a completed booking. Please contact support if needed." 
+      });
+    }
+
+    if (booking.paymentStatus === 'completed') {
+      return res.status(400).json({ 
+        message: "Cannot delete a booking with completed payment. Please use cancellation instead." 
+      });
+    }
+
+    // Delete the booking
+    await Booking.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: "Booking deleted successfully"
+    });
+  } catch (error) {
+    console.error("Error deleting booking:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 
 

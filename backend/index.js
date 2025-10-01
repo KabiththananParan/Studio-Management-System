@@ -15,6 +15,12 @@ import adminSlotsRoutes from "./routes/adminSlots.js";
 import adminBookingsRoutes from "./routes/adminBookings.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import refundRoutes from "./routes/refundRoutes.js";
+import adminRefundRoutes from "./routes/adminRefundRoutes.js";
+import userReviews from "./routes/userReviews.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
+import userComplaints from "./routes/userComplaints.js";
+import testRoutes from "./routes/testRoutes.js";
 
 
 
@@ -35,16 +41,31 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/user/slots", userSlotsRoutes);
 app.use("/api/user/bookings", userBookingsRoutes);
+app.use("/api/user/refunds", refundRoutes);
+app.use("/api/user/reviews", userReviews);
+app.use("/api/user/complaints", userComplaints);
 
 app.use("/api/admin/users", adminUsersRoutes);
 app.use("/api/admin/packages", adminPackagesRoutes);
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/admin/slots", adminSlotsRoutes);
 app.use("/api/admin/bookings", adminBookingsRoutes);
+app.use("/api/admin/refunds", adminRefundRoutes);
 
 // Debug: Add logging for payment routes
 console.log("Registering payment routes at /api/payments");
 app.use("/api/payments", paymentRoutes);
+
+// Register general refund routes for eligibility checks
+console.log("Registering general refund routes at /api/refunds");
+app.use("/api/refunds", refundRoutes);
+
+// Register public review routes
+console.log("Registering review routes at /api/reviews");
+app.use("/api/reviews", reviewRoutes);
+
+// Test routes for debugging
+app.use("/api/test", testRoutes);
 
 app.use("/api/auth/admin", adminRoutes);
 

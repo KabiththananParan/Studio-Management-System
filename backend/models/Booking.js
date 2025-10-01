@@ -47,7 +47,7 @@ const bookingSchema = new mongoose.Schema({
   },
   paymentStatus: { 
     type: String, 
-    enum: ['pending', 'completed', 'failed', 'refunded'], 
+    enum: ['pending', 'completed', 'failed', 'refunded', 'refund_approved', 'refund_requested'], 
     default: 'pending' 
   },
   paymentDetails: {
@@ -72,13 +72,27 @@ const bookingSchema = new mongoose.Schema({
   // Booking Status
   bookingStatus: { 
     type: String, 
-    enum: ['confirmed', 'cancelled', 'completed', 'no-show'], 
+    enum: ['confirmed', 'cancelled', 'completed', 'no-show', 'refunded'], 
     default: 'confirmed' 
   },
   
   // Additional Information
   specialRequests: { type: String, default: "" },
   notes: { type: String, default: "" },
+  
+  // Review Information
+  hasReview: { 
+    type: Boolean, 
+    default: false 
+  },
+  reviewId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Review' 
+  },
+  reviewPrompted: { 
+    type: Boolean, 
+    default: false 
+  },
   
   // Admin Tracking
   createdBy: { 
@@ -131,6 +145,34 @@ bookingSchema.methods.canBeCancelled = function() {
   return hoursDiff >= 24 && 
          this.bookingStatus === 'confirmed' && 
          this.paymentStatus === 'completed';
+};
+
+// Method to check refund eligibility
+bookingSchema.methods.getRefundEligibility = function() {
+  if (this.bookingStatus === 'cancelled') {
+    return { eligible: false, reason: 'Booking is already cancelled', percentage: 0 };
+  }
+  
+  if (this.paymentStatus !== 'completed') {
+    return { eligible: false, reason: 'Payment not completed', percentage: 0 };
+  }
+  
+  const now = new Date();
+  const bookingDate = new Date(this.bookingDate);
+  const daysUntilBooking = Math.ceil((bookingDate - now) / (1000 * 60 * 60 * 24));
+  
+  // Refund policy based on cancellation timing
+  if (daysUntilBooking < 0) {
+    return { eligible: false, reason: 'Cannot refund past bookings', percentage: 0 };
+  } else if (daysUntilBooking === 0) {
+    return { eligible: false, reason: 'Cannot refund same-day bookings', percentage: 0 };
+  } else if (daysUntilBooking <= 2) {
+    return { eligible: true, reason: 'Eligible for 50% refund', percentage: 50 };
+  } else if (daysUntilBooking <= 7) {
+    return { eligible: true, reason: 'Eligible for 75% refund', percentage: 75 };
+  } else {
+    return { eligible: true, reason: 'Eligible for full refund', percentage: 100 };
+  }
 };
 
 // Static method to get booking statistics

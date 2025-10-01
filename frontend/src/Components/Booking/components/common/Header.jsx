@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Link, useLocation } from 'react-router-dom';
-import { Camera, History, CreditCard } from 'lucide-react';
+import { Camera, History, CreditCard, FileText } from 'lucide-react';
 
 const Header = () => {
   const location = useLocation();

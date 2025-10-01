@@ -5,8 +5,12 @@ import {
   getUserBookings,
   getBookingById,
   cancelBooking,
-  updatePaymentStatus
+  updatePaymentStatus,
+  updateBooking,
+  deleteBooking
 } from "../controllers/userBookingsController.js";
+import { getRefundEligibility } from "../controllers/refundController.js";
+import { checkReviewEligibility } from "../controllers/reviewController.js";
 
 const router = express.Router();
 
@@ -34,5 +38,25 @@ router.patch("/:id/cancel", protect, cancelBooking);
 // @desc    Update payment status
 // @access  Private
 router.patch("/:id/payment", protect, updatePaymentStatus);
+
+// @route   PUT /api/user/bookings/:id
+// @desc    Update booking details
+// @access  Private
+router.put("/:id", protect, updateBooking);
+
+// @route   DELETE /api/user/bookings/:id
+// @desc    Delete booking
+// @access  Private
+router.delete("/:id", protect, deleteBooking);
+
+// @route   GET /api/user/bookings/:bookingId/refund-eligibility
+// @desc    Check refund eligibility for a booking
+// @access  Private
+router.get("/:bookingId/refund-eligibility", protect, getRefundEligibility);
+
+// @route   GET /api/user/bookings/:bookingId/review-eligibility
+// @desc    Check review eligibility for a booking
+// @access  Private
+router.get("/:bookingId/review-eligibility", protect, checkReviewEligibility);
 
 export default router;

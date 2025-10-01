@@ -231,6 +231,8 @@ export const processPayment = async (req, res) => {
       { path: 'userId', select: 'firstName lastName email' }
     ]);
 
+
+
     // Always send payment confirmation email (since we always succeed in development)
     try {
       await sendPaymentConfirmationEmail(updatedBooking);
@@ -256,7 +258,8 @@ export const processPayment = async (req, res) => {
         instructions: paymentResult.instructions,
         timestamp: paymentResult.timestamp
       },
-      booking: updatedBooking
+      booking: updatedBooking,
+      invoiceId: invoiceId
     });
 
   } catch (error) {

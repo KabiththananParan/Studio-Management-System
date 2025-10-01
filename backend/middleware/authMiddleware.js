@@ -19,7 +19,7 @@ export const protect = async (req, res, next) => {
         return res.status(401).json({ message: "Admin not found" });
       }
       // Attach admin info to request
-      req.user = { id: admin._id, email: admin.email, role: "admin", isAdmin: true };
+      req.user = { id: admin._id.toString(), email: admin.email, role: "admin", isAdmin: true };
     } else {
       // Fetch regular user from DB
       const user = await User.findById(decoded.id);
@@ -27,7 +27,7 @@ export const protect = async (req, res, next) => {
         return res.status(401).json({ message: "User not found" });
       }
       // Attach user info to request
-      req.user = { id: user._id, email: user.email, role: "user", isAdmin: false };
+      req.user = { id: user._id.toString(), email: user.email, role: "user", isAdmin: false };
     }
     
     next();

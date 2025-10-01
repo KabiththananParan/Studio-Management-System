@@ -223,6 +223,37 @@ const SuccessPage = () => {
           </div>
         </div>
 
+        {/* Review Prompt for Completed Payments */}
+        {payment?.status === 'completed' && (
+          <div className="mt-8 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-200 p-6">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-100 rounded-full mb-4">
+                <span className="text-2xl">⭐</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Help Others Discover Great Photography!
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Share your experience with our studio. Your review helps other customers and helps us improve our services.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <button
+                  onClick={() => navigate('/userDashboard', { state: { showReviewModal: true, bookingId: booking._id } })}
+                  className="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition flex items-center justify-center font-medium"
+                >
+                  <span className="mr-2">⭐</span>
+                  Write a Review
+                </button>
+                
+                <p className="text-sm text-gray-500">
+                  Or add a review later from your dashboard
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
           <button
