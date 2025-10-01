@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/user.js";
 import userSlotsRoutes from "./routes/userSlots.js";
+import userBookingsRoutes from "./routes/userBookings.js";
 import cors from "cors";
 import router from "./routes/userRoutes.js";
 import adminUsersRoutes from "./routes/adminUsers.js";
@@ -24,6 +25,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/user/slots", userSlotsRoutes);
+app.use("/api/user/bookings", userBookingsRoutes);
 
 app.use("/api/admin/users", adminUsersRoutes);
 app.use("/api/admin/packages", adminPackagesRoutes);

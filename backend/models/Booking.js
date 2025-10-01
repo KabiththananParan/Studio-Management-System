@@ -1,6 +1,13 @@
 import mongoose from "mongoose";
 
 const bookingSchema = new mongoose.Schema({
+  // User Reference
+  userId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: false // Optional for guest bookings
+  },
+  
   // Customer Information
   customerInfo: {
     name: { type: String, required: true },
@@ -19,7 +26,11 @@ const bookingSchema = new mongoose.Schema({
   packagePrice: { type: Number, required: true },
   
   // Time Slot Information
-  slotId: { type: String, required: true },
+  slotId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Slot', 
+    required: true 
+  },
   bookingDate: { type: Date, required: true },
   bookingTime: { type: String, required: true },
   duration: { type: Number, required: true }, // in hours

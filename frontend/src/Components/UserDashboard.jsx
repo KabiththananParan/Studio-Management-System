@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 import ProfileView from '../User/ProfileView';
 
@@ -46,6 +46,9 @@ const Icon = ({ name, className = "" }) => {
     ),
     Moon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    ),
+    CheckCircle: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
     )
   };
   return icons[name] || null;
@@ -53,55 +56,488 @@ const Icon = ({ name, className = "" }) => {
 
 
 
-const DashboardView = ({ isDarkMode = false }) => (
-  <div className="p-6 md:p-8 space-y-8">
-    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      {/* Stat cards would go here with dark mode support
-        <div key={index} className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-6 rounded-2xl shadow-sm border`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} font-medium`}>{stat.title}</h3>
-            <div className={`p-2 rounded-lg ${stat.iconBg}`}>
-              {stat.icon}
+const DashboardView = ({ isDarkMode = false, setActiveTab }) => {
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    upcomingBookings: 0,
+    completedBookings: 0,
+    totalSpent: 0
+  });
+  const [recentBookings, setRecentBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch('http://localhost:5000/api/user/bookings', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const bookings = data.bookings || data; // Handle both formats
+        
+        // Calculate stats
+        const now = new Date();
+        const upcoming = bookings.filter(booking => 
+          booking.bookingStatus === 'confirmed' && 
+          new Date(booking.slot?.date) > now
+        );
+        const completed = bookings.filter(booking => booking.bookingStatus === 'completed');
+        const totalSpent = bookings
+          .filter(booking => booking.bookingStatus !== 'cancelled')
+          .reduce((sum, booking) => sum + (booking.totalAmount || 0), 0);
+
+        setStats({
+          totalBookings: bookings.length,
+          upcomingBookings: upcoming.length,
+          completedBookings: completed.length,
+          totalSpent
+        });
+
+        // Get recent bookings (last 3)
+        const recent = bookings
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 3);
+        setRecentBookings(recent);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'confirmed':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      case 'completed':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const statCards = [
+    {
+      title: 'Total Bookings',
+      value: stats.totalBookings,
+      icon: <Icon name="Calendar" className="w-6 h-6" />,
+      iconBg: 'bg-blue-100 text-blue-600',
+      change: 'All time'
+    },
+    {
+      title: 'Upcoming',
+      value: stats.upcomingBookings,
+      icon: <Icon name="BookOpen" className="w-6 h-6" />,
+      iconBg: 'bg-green-100 text-green-600',
+      change: 'Confirmed bookings'
+    },
+    {
+      title: 'Completed',
+      value: stats.completedBookings,
+      icon: <Icon name="Star" className="w-6 h-6" />,
+      iconBg: 'bg-purple-100 text-purple-600',
+      change: 'Sessions finished'
+    },
+    {
+      title: 'Total Spent',
+      value: `$${stats.totalSpent}`,
+      icon: <Icon name="Wallet" className="w-6 h-6" />,
+      iconBg: 'bg-orange-100 text-orange-600',
+      change: 'All bookings'
+    }
+  ];
+
+  if (loading) {
+    return (
+      <div className="p-6 md:p-8">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 md:p-8 space-y-8">
+      {/* Stats Grid */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statCards.map((stat, index) => (
+          <div key={index} className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-6 rounded-2xl shadow-sm border transition-colors duration-300`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} font-medium`}>{stat.title}</h3>
+              <div className={`p-2 rounded-lg ${stat.iconBg}`}>
+                {stat.icon}
+              </div>
             </div>
+            <p className={`text-3xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{stat.value}</p>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>{stat.change}</p>
           </div>
-          <p className={`text-3xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{stat.value}</p>
-          <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>{stat.change}</p>
-        </div> */}
-    </div>
-
-    {/* Upcoming Bookings Section */}
-    <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-6 rounded-2xl shadow-sm border transition-colors duration-300`}>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Upcoming Bookings</h2>
-        <a href="#" className="text-blue-500 hover:underline text-sm font-medium">View All Bookings</a>
+        ))}
       </div>
-      <div className="overflow-x-auto">
-        <table className={`min-w-full divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
-          <thead>
-            <tr>
-              <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Client</th>
-              <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Service</th>
-              <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Date & Time</th>
-              <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Duration</th>
-              <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Revenue</th>
-              <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Status</th>
-            </tr>
-          </thead>
-          <tbody className={`${isDarkMode ? 'bg-gray-800 divide-gray-700' : 'bg-white divide-gray-200'}`}>
-            
-          </tbody>
-        </table>
+
+      {/* Recent Bookings Section */}
+      <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-6 rounded-2xl shadow-sm border transition-colors duration-300`}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Recent Bookings</h2>
+          <button 
+            onClick={() => setActiveTab('My Bookings')}
+            className="text-blue-500 hover:underline text-sm font-medium"
+          >
+            View All Bookings
+          </button>
+        </div>
+        
+        {recentBookings.length === 0 ? (
+          <div className="text-center py-8">
+            <Icon name="Calendar" className={`w-12 h-12 mx-auto mb-3 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+            <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>No bookings yet</p>
+            <button
+              onClick={() => window.location.href = '/booking'}
+              className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+            >
+              Make Your First Booking
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className={`min-w-full divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+              <thead>
+                <tr>
+                  <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Package</th>
+                  <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Date</th>
+                  <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Amount</th>
+                  <th className={`px-6 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>Status</th>
+                </tr>
+              </thead>
+              <tbody className={`${isDarkMode ? 'bg-gray-800 divide-gray-700' : 'bg-white divide-gray-200'}`}>
+                {recentBookings.map((booking) => (
+                  <tr key={booking._id} className={isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {booking.package?.name || 'Package not found'}
+                      </div>
+                      <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {booking.duration || 'N/A'} hours
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {booking.slot?.date ? formatDate(booking.slot.date) : 'TBD'}
+                      </div>
+                      <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {booking.slot?.time || 'Time TBD'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        ${booking.totalAmount}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(booking.bookingStatus)}`}>
+                        {booking.bookingStatus}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-const BookingsView = ({ isDarkMode = false }) => (
-  <div className="p-6 md:p-8">
-    <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>My Bookings</h2>
-    <p className={`mt-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>This page would show a detailed list of all your bookings, both past and future.</p>
-  </div>
-);
+const BookingsView = ({ isDarkMode = false }) => {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
+
+  // Fetch user bookings
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const fetchBookings = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Please log in to view bookings');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/user/bookings', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setBookings(data.bookings || data); // Handle both response formats
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || 'Failed to fetch bookings');
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      setError('An error occurred while fetching bookings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMakePayment = (bookingId) => {
+    // Navigate to payment page with booking ID
+    window.location.href = `/payment?bookingId=${bookingId}`;
+  };
+
+  const handleCancelBooking = async (bookingId) => {
+    try {
+      setCancellingId(bookingId);
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`http://localhost:5000/api/user/bookings/${bookingId}/cancel`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Refresh bookings list
+        fetchBookings();
+        alert('Booking cancelled successfully');
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || 'Failed to cancel booking');
+      }
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      alert('An error occurred while cancelling the booking');
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'confirmed':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      case 'completed':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (dateString) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 md:p-8">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 md:p-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 md:p-8">
+      <div className="mb-6">
+        <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>My Bookings</h2>
+        <p className={`mt-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          Manage your studio bookings and track their status
+        </p>
+      </div>
+
+      {bookings.length === 0 ? (
+        <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-8 text-center`}>
+          <Icon name="Calendar" className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+          <h3 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+            No Bookings Found
+          </h3>
+          <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
+            You haven't made any bookings yet. Start by booking a studio session!
+          </p>
+          <button
+            onClick={() => window.location.href = '/booking'}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+          >
+            Book Studio
+          </button>
+        </div>
+      ) : (
+        <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border overflow-hidden`}>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}>
+                <tr>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                    Booking Details
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                    Package
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                    Date & Time
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                    Amount
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                    Status
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className={`${isDarkMode ? 'bg-gray-800 divide-gray-700' : 'bg-white divide-gray-200'}`}>
+                {bookings.map((booking) => (
+                  <tr key={booking._id} className={isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {booking.customerInfo.name}
+                        </div>
+                        <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {booking.customerInfo.email}
+                        </div>
+                        <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                          ID: {booking._id.slice(-8)}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {booking.package?.name || 'Package not found'}
+                      </div>
+                      <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Duration: {booking.duration || 'N/A'} hours
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={`text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {booking.slot?.date ? formatDate(booking.slot.date) : 'Date not available'}
+                      </div>
+                      <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {booking.slot?.time || 'Time not available'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        ${booking.totalAmount}
+                      </div>
+                      <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {booking.paymentMethod}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(booking.bookingStatus)}`}>
+                        {booking.bookingStatus}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {booking.bookingStatus === 'confirmed' && booking.paymentStatus === 'pending' && (
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleMakePayment(booking._id)}
+                            className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition-colors duration-200"
+                          >
+                            Make Payment
+                          </button>
+                          <button
+                            onClick={() => handleCancelBooking(booking._id)}
+                            disabled={cancellingId === booking._id}
+                            className="text-red-600 hover:text-red-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {cancellingId === booking._id ? 'Cancelling...' : 'Cancel'}
+                          </button>
+                        </div>
+                      )}
+                      {booking.bookingStatus === 'confirmed' && booking.paymentStatus === 'completed' && (
+                        <span className={`text-green-600 font-medium`}>
+                          Paid
+                        </span>
+                      )}
+                      {booking.bookingStatus === 'cancelled' && (
+                        <span className={`${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                          Cancelled
+                        </span>
+                      )}
+                      {booking.bookingStatus === 'completed' && (
+                        <span className={`${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                          Completed
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const InvoicesView = ({ isDarkMode = false }) => (
   <div className="p-6 md:p-8">
@@ -126,12 +562,14 @@ const UserDashboard = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [user, setUser] = useState(null); // ✅ Added user state
   const [loadingUser, setLoadingUser] = useState(true); // Optional: for loading state
+  const [successMessage, setSuccessMessage] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // Check if user has a saved theme preference
     const savedTheme = localStorage.getItem('dashboardTheme');
     return savedTheme === 'dark';
   });
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Toggle theme and save preference
   const toggleTheme = () => {
@@ -139,6 +577,15 @@ const UserDashboard = () => {
     setIsDarkMode(newTheme);
     localStorage.setItem('dashboardTheme', newTheme ? 'dark' : 'light');
   };
+
+  // Check for success message from navigation
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Clear the message after 5 seconds
+      setTimeout(() => setSuccessMessage(null), 5000);
+    }
+  }, [location.state]);
 
    // Fetch user profile
   useEffect(() => {
@@ -182,7 +629,7 @@ const UserDashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'Dashboard':
-        return <DashboardView isDarkMode={isDarkMode} />;
+        return <DashboardView isDarkMode={isDarkMode} setActiveTab={setActiveTab} />;
       case 'My Bookings':
         return <BookingsView isDarkMode={isDarkMode} />;
       case 'Invoices':
@@ -341,6 +788,15 @@ const UserDashboard = () => {
           </header>
 
           <main className={`${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} min-h-screen transition-colors duration-300`}>
+            {/* Success Message */}
+            {successMessage && (
+              <div className="fixed top-20 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-pulse">
+                <div className="flex items-center">
+                  <Icon name="CheckCircle" className="w-5 h-5 mr-2" />
+                  {successMessage}
+                </div>
+              </div>
+            )}
             {renderContent()}
           </main>
         </div>

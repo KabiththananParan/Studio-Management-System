@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { ArrowLeft, User, Mail, Phone, MapPin, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, MapPin, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
 import { validators, validateField, formatters, sanitizers } from '../../utils/validation';
 
 const BookingForm = ({ selectedPackage, selectedSlot, onBack, onNext }) => {
@@ -13,6 +13,56 @@ const BookingForm = ({ selectedPackage, selectedSlot, onBack, onNext }) => {
   const [errors, setErrors] = useState({});
   const [fieldTouched, setFieldTouched] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingUserData, setLoadingUserData] = useState(false);
+  const [userDataLoaded, setUserDataLoaded] = useState(false);
+
+  // Check for logged-in user and fetch their data
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token && !userDataLoaded) {
+      fetchUserData();
+    }
+  }, [userDataLoaded]);
+
+  const fetchUserData = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    setLoadingUserData(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/user/me', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('Fetched user data:', userData); // Debug log
+        
+        // Pre-populate form with user data
+        setFormData(prevData => ({
+          ...prevData,
+          name: userData.firstName && userData.lastName 
+            ? `${userData.firstName} ${userData.lastName}` 
+            : prevData.name,
+          email: userData.email || prevData.email,
+          // Keep phone and address empty as they might not be in user profile
+          phone: prevData.phone,
+          address: prevData.address
+        }));
+        
+        setUserDataLoaded(true);
+      } else {
+        console.log('Failed to fetch user data, user might not be logged in');
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoadingUserData(false);
+    }
+  };
 
   // Validation rules for each field
   const validationRules = {
@@ -132,7 +182,7 @@ const BookingForm = ({ selectedPackage, selectedSlot, onBack, onNext }) => {
     try {
       if (validateForm()) {
         // Additional validation checks
-        const totalAmount = selectedPackage.price + selectedSlot.price;
+        const totalAmount = selectedPackage.price + (selectedSlot?.price || 0);
         
         if (totalAmount <= 0) {
           setErrors(prev => ({ 
@@ -142,9 +192,42 @@ const BookingForm = ({ selectedPackage, selectedSlot, onBack, onNext }) => {
           return;
         }
 
-        const bookingDetails = {
-          packageId: selectedPackage.id,
-          slotId: selectedSlot.id,
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setErrors(prev => ({ 
+            ...prev, 
+            general: 'Please log in to make a booking.' 
+          }));
+          return;
+        }
+
+        console.log('Selected package:', JSON.stringify(selectedPackage, null, 2));
+        console.log('Selected slot:', JSON.stringify(selectedSlot, null, 2));
+
+        // Extract IDs with fallback options
+        const packageId = selectedPackage._id || selectedPackage.id;
+        const slotId = selectedSlot?.slotId || selectedSlot?._id || selectedSlot?.id;
+        
+        // Validate that we have required IDs
+        if (!packageId) {
+          setErrors(prev => ({ 
+            ...prev, 
+            general: 'Package information is missing. Please restart the booking process.' 
+          }));
+          return;
+        }
+        
+        if (!slotId) {
+          setErrors(prev => ({ 
+            ...prev, 
+            general: 'Slot information is missing. Please select a time slot again.' 
+          }));
+          return;
+        }
+
+        const bookingData = {
+          packageId,
+          slotId,
           customerInfo: {
             name: formData.name.trim(),
             email: formData.email.toLowerCase().trim(),
@@ -152,14 +235,48 @@ const BookingForm = ({ selectedPackage, selectedSlot, onBack, onNext }) => {
             address: formData.address.trim()
           },
           paymentMethod: 'card',
-          totalAmount,
-          timestamp: new Date().toISOString()
+          totalAmount
         };
 
-        // Simulate API validation delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log('Creating booking with data:', JSON.stringify(bookingData, null, 2));
 
-        onNext(bookingDetails);
+        // Create booking in database
+        const response = await fetch('http://localhost:5000/api/user/bookings', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(bookingData)
+        });
+
+        const responseData = await response.json();
+        console.log('Response status:', response.status);
+        console.log('Response data:', JSON.stringify(responseData, null, 2));
+
+        if (response.ok) {
+          console.log('Booking created successfully:', responseData);
+          
+          // Show success message and redirect to dashboard after a short delay
+          setErrors(prev => ({ 
+            ...prev, 
+            general: null 
+          }));
+          
+          // Show success state
+          alert(`Booking created successfully! Reference: ${responseData.booking?.bookingReference || 'N/A'}\n\nYou will be redirected to your dashboard where you can complete the payment.`);
+          
+          // Redirect to user dashboard after 2 seconds
+          setTimeout(() => {
+            window.location.href = '/userDashboard';
+          }, 2000);
+        } else {
+          console.error('Booking creation failed:', responseData);
+          setErrors(prev => ({ 
+            ...prev, 
+            general: responseData.message || 'Failed to create booking. Please try again.' 
+          }));
+        }
       }
     } catch (error) {
       console.error('Booking submission error:', error);
@@ -205,16 +322,18 @@ const BookingForm = ({ selectedPackage, selectedSlot, onBack, onNext }) => {
                 <p className="text-sm text-purple-100">{selectedPackage.duration}</p>
                 <p className="text-lg font-bold">${selectedPackage.price}</p>
               </div>
-              <div>
-                <h4 className="font-semibold">Time Slot</h4>
-                <p className="text-sm text-purple-100">{selectedSlot.date} at {selectedSlot.time}</p>
-                <p className="text-lg font-bold">${selectedSlot.price} booking fee</p>
-              </div>
+              {selectedSlot && (
+                <div>
+                  <h4 className="font-semibold">Time Slot</h4>
+                  <p className="text-sm text-purple-100">{selectedSlot.date} at {selectedSlot.time}</p>
+                  <p className="text-lg font-bold">${selectedSlot.price} booking fee</p>
+                </div>
+              )}
             </div>
             <div className="border-t border-white/20 mt-4 pt-4">
               <div className="flex justify-between items-center">
                 <span className="text-lg">Total Amount:</span>
-                <span className="text-2xl font-bold">${selectedPackage.price + selectedSlot.price}</span>
+                <span className="text-2xl font-bold">${selectedPackage.price + (selectedSlot?.price || 0)}</span>
               </div>
             </div>
           </div>
@@ -222,6 +341,55 @@ const BookingForm = ({ selectedPackage, selectedSlot, onBack, onNext }) => {
 
         {/* Form */}
         <div className="p-6">
+          {/* User Data Status */}
+          {loadingUserData && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center text-blue-700">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                <span className="text-sm">Loading your profile information...</span>
+              </div>
+            </div>
+          )}
+          
+          {userDataLoaded && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center text-green-700">
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  <span className="text-sm">Your profile information has been pre-filled</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserDataLoaded(false);
+                    fetchUserData();
+                  }}
+                  className="text-green-600 hover:text-green-800 text-sm flex items-center"
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Refresh
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!localStorage.getItem('token') && !loadingUserData && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center text-yellow-700">
+                  <User className="w-4 h-4 mr-2" />
+                  <span className="text-sm">Sign in to auto-fill your information</span>
+                </div>
+                <a
+                  href="/login-form"
+                  className="text-yellow-600 hover:text-yellow-800 text-sm font-medium underline"
+                >
+                  Sign In
+                </a>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* General Error Message */}
             {errors.general && (
@@ -237,6 +405,11 @@ const BookingForm = ({ selectedPackage, selectedSlot, onBack, onNext }) => {
               <label className="text-sm font-medium text-gray-700 mb-2 flex items-center">
                 <User className="w-4 h-4 mr-2 text-purple-600" />
                 Full Name *
+                {userDataLoaded && formData.name && (
+                  <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                    Auto-filled
+                  </span>
+                )}
               </label>
               <div className="relative">
                 <input
@@ -249,6 +422,7 @@ const BookingForm = ({ selectedPackage, selectedSlot, onBack, onNext }) => {
                   className={`w-full p-3 pr-10 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 ${
                     getFieldStatus('name') === 'error' ? 'border-red-500 bg-red-50' :
                     getFieldStatus('name') === 'success' ? 'border-green-500 bg-green-50' :
+                    userDataLoaded && formData.name ? 'border-blue-300 bg-blue-50' :
                     'border-gray-300'
                   }`}
                 />
@@ -271,6 +445,11 @@ const BookingForm = ({ selectedPackage, selectedSlot, onBack, onNext }) => {
               <label className="text-sm font-medium text-gray-700 mb-2 flex items-center">
                 <Mail className="w-4 h-4 mr-2 text-purple-600" />
                 Email Address *
+                {userDataLoaded && formData.email && (
+                  <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                    Auto-filled
+                  </span>
+                )}
               </label>
               <div className="relative">
                 <input
@@ -283,6 +462,7 @@ const BookingForm = ({ selectedPackage, selectedSlot, onBack, onNext }) => {
                   className={`w-full p-3 pr-10 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 ${
                     getFieldStatus('email') === 'error' ? 'border-red-500 bg-red-50' :
                     getFieldStatus('email') === 'success' ? 'border-green-500 bg-green-50' :
+                    userDataLoaded && formData.email ? 'border-blue-300 bg-blue-50' :
                     'border-gray-300'
                   }`}
                 />
@@ -297,7 +477,10 @@ const BookingForm = ({ selectedPackage, selectedSlot, onBack, onNext }) => {
                 </p>
               )}
               <p className="mt-1 text-xs text-gray-500">
-                We'll send your booking confirmation here
+                {userDataLoaded && formData.email 
+                  ? 'Confirmation will be sent to your registered email'
+                  : 'We\'ll send your booking confirmation here'
+                }
               </p>
             </div>
 

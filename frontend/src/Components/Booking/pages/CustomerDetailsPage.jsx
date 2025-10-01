@@ -1,5 +1,4 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+﻿import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { BookingForm } from '../components';
 
@@ -37,7 +36,7 @@ const CustomerDetailsPage = () => {
     <BookingForm
       selectedPackage={selectedPackage}
       selectedSlot={selectedSlot}
-      onBack={() => navigate(`/booking/${selectedPackage.id}`)}
+      onBack={() => navigate('/booking')}
       onNext={handleBookingNext}
     />
   );
