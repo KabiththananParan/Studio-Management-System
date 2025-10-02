@@ -18,7 +18,7 @@ const mockPaymentGateway = {
       paymentId: `pay_${Date.now()}`,
       status: 'completed',
       amount: paymentData.amount,
-      currency: paymentData.currency || 'USD',
+      currency: paymentData.currency || 'LKR',
       gateway: 'mock_gateway',
       timestamp: new Date().toISOString()
     };
@@ -33,7 +33,7 @@ const mockPaymentGateway = {
       paymentId: `pay_${Date.now()}`,
       status: 'completed', // Mark as completed for development
       amount: paymentData.amount,
-      currency: paymentData.currency || 'USD',
+      currency: paymentData.currency || 'LKR',
       gateway: 'bank_transfer',
       timestamp: new Date().toISOString(),
       instructions: 'Bank transfer processed successfully (Development Mode)'
@@ -49,7 +49,7 @@ const mockPaymentGateway = {
       paymentId: `pay_${Date.now()}`,
       status: 'completed', // Mark as completed for development
       amount: paymentData.amount,
-      currency: paymentData.currency || 'USD',
+      currency: paymentData.currency || 'LKR',
       gateway: 'cash',
       timestamp: new Date().toISOString(),
       instructions: 'Cash payment confirmed (Development Mode)'
@@ -218,7 +218,7 @@ export const processPayment = async (req, res) => {
         paymentId: `pay_dev_${Date.now()}`,
         status: 'completed',
         amount: paymentData.amount,
-        currency: paymentData.currency || 'USD',
+        currency: paymentData.currency || 'LKR',
         gateway: 'development_mode',
         timestamp: new Date().toISOString(),
         instructions: 'Payment processed in development mode'

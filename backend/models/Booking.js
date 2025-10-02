@@ -56,7 +56,7 @@ const bookingSchema = new mongoose.Schema({
     gateway: { type: String }, // Payment gateway used (stripe, paypal, etc.)
     method: { type: String }, // Specific payment method
     amount: { type: Number }, // Amount processed
-    currency: { type: String, default: 'USD' },
+    currency: { type: String, default: 'LKR' },
     processedAt: { type: Date }, // When payment was processed
     instructions: { type: String }, // Payment instructions (for bank transfer, cash)
     failureReason: { type: String }, // Reason for payment failure

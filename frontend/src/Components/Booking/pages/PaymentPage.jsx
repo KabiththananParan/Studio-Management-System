@@ -337,7 +337,7 @@ const PaymentPage = ({ onPaymentSuccess }) => {
         bookingId: targetBookingId,
         paymentMethod: selectedMethod,
         paymentDetails,
-        currency: 'USD'
+        currency: 'LKR'
       };
 
       console.log('Processing payment:', paymentPayload);

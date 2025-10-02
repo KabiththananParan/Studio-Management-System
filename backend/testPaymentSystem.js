@@ -134,7 +134,7 @@ async function testPaymentProcessing(token, booking, scenario) {
       bookingId: booking._id,
       paymentMethod: scenario.paymentMethod,
       paymentDetails: scenario.paymentDetails,
-      currency: 'USD'
+      currency: 'LKR'
     };
     
     console.log('Payment payload:', JSON.stringify(paymentPayload, null, 2));

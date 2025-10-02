@@ -49,7 +49,7 @@ const createTestSlots = async () => {
           date: new Date(date),
           startTime: "09:00",
           endTime: "12:00",
-          price: Math.floor(Math.random() * 50) + 30, // $30-80
+          price: Math.floor(Math.random() * 50) + 30, // LKR 30-80
           isAvailable: Math.random() > 0.2, // 80% available
           status: Math.random() > 0.2 ? 'available' : 'blocked',
           notes: Math.random() > 0.7 ? "Setup required 30 min before" : ""
@@ -61,7 +61,7 @@ const createTestSlots = async () => {
           date: new Date(date),
           startTime: "13:00",
           endTime: "16:00",
-          price: Math.floor(Math.random() * 60) + 40, // $40-100
+          price: Math.floor(Math.random() * 60) + 40, // LKR 40-100
           isAvailable: Math.random() > 0.3, // 70% available
           status: Math.random() > 0.3 ? 'available' : 'blocked',
           notes: ""
@@ -74,7 +74,7 @@ const createTestSlots = async () => {
             date: new Date(date),
             startTime: "17:00",
             endTime: "20:00",
-            price: Math.floor(Math.random() * 70) + 50, // $50-120
+            price: Math.floor(Math.random() * 70) + 50, // LKR 50-120
             isAvailable: Math.random() > 0.4, // 60% available
             status: Math.random() > 0.4 ? 'available' : 'blocked',
             notes: Math.random() > 0.8 ? "Extended session available" : ""
