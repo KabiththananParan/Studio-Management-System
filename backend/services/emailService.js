@@ -174,7 +174,7 @@ export const sendInventoryPaymentConfirmationEmail = async (inventoryBooking) =>
             <strong>Quantity:</strong> ${item.quantity}
           </p>
           <p style="margin: 5px 0 0 0; color: #059669; font-weight: bold;">
-            LKR ${item.totalPrice.toLocaleString()} (${item.quantity} × LKR ${inventory.rental.pricePerDay}/day)
+            LKR ${item.subtotal.toLocaleString()} (${item.quantity} × LKR ${inventory.rental.pricePerDay}/day)
           </p>
         </div>
       `;

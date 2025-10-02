@@ -251,7 +251,7 @@ const inventoryBookingSchema = new mongoose.Schema({
 });
 
 // Indexes for better performance
-inventoryBookingSchema.index({ bookingId: 1 });
+// Note: bookingId already has unique index from field definition, no need for additional index
 inventoryBookingSchema.index({ user: 1, createdAt: -1 });
 inventoryBookingSchema.index({ 'bookingDates.startDate': 1, 'bookingDates.endDate': 1 });
 inventoryBookingSchema.index({ status: 1 });

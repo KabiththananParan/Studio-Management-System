@@ -225,7 +225,7 @@ const inventorySchema = new mongoose.Schema({
 // Indexes for better performance
 inventorySchema.index({ name: 'text', brand: 'text', model: 'text', description: 'text' });
 inventorySchema.index({ category: 1, status: 1 });
-inventorySchema.index({ serialNumber: 1 });
+// Note: serialNumber already has unique index from field definition, no need for additional index
 inventorySchema.index({ createdAt: -1 });
 
 // Virtual for total maintenance cost
