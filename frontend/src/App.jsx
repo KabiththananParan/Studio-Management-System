@@ -28,6 +28,10 @@ import {
   RefundsPage
 } from './Components/Booking/pages';
 
+// Rental payment components
+import RentalPaymentPage from './Components/Rental/RentalPaymentPage';
+import RentalPaymentSuccess from './Components/Rental/RentalPaymentSuccess';
+
 const AppContent = () => {
   const navigate = useNavigate();
   const [paymentHistory, setPaymentHistory] = useState([
@@ -138,6 +142,22 @@ const AppContent = () => {
       <Route 
         path="/refunds" 
         element={<RefundsPage transactions={paymentHistory} />} 
+      />
+
+      {/* Routes for rental payments */}
+      <Route 
+        path="/rental-payment" 
+        element={<RentalPaymentPage />} 
+      />
+      <Route 
+        path="/rental-payment-success" 
+        element={<RentalPaymentSuccess />} 
+      />
+      
+      {/* Direct route to inventory dashboard */}
+      <Route 
+        path="/user/inventory-dashboard" 
+        element={<UserDashboard />} 
       />
     </Routes>
   );

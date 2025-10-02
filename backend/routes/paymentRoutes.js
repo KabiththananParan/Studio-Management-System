@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   processPayment,
+  processInventoryPayment,
   verifyPayment,
   getPaymentMethods,
   updatePaymentStatus
@@ -23,6 +24,11 @@ router.get('/methods', getPaymentMethods);
 // @desc    Process payment for a booking
 // @access  Private
 router.post('/process', protect, processPayment);
+
+// @route   POST /api/payments/inventory
+// @desc    Process payment for an inventory booking
+// @access  Private
+router.post('/inventory', protect, processInventoryPayment);
 
 // @route   GET /api/payments/verify/:bookingId
 // @desc    Verify payment status for a booking

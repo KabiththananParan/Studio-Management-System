@@ -3,11 +3,18 @@ import axios from "axios";
 
 const UsersTable = () => {
   const [users, setUsers] = useState([]); // Ensure it's always an array
+  const [filteredUsers, setFilteredUsers] = useState([]); // For search and filter results
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  
+  // Search and Filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all"); // all, verified, unverified
+  const [sortBy, setSortBy] = useState("name"); // name, email, date
+  const [sortOrder, setSortOrder] = useState("asc"); // asc, desc
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -19,6 +26,100 @@ const UsersTable = () => {
   });
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Search and Filter Logic
+  const applySearchAndFilters = () => {
+    let filtered = [...users];
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(user => 
+        user.firstName?.toLowerCase().includes(search) ||
+        user.lastName?.toLowerCase().includes(search) ||
+        user.email?.toLowerCase().includes(search) ||
+        user.userName?.toLowerCase().includes(search) ||
+        `${user.firstName} ${user.lastName}`.toLowerCase().includes(search)
+      );
+    }
+
+    // Apply verification status filter
+    if (filterStatus !== "all") {
+      filtered = filtered.filter(user => {
+        if (filterStatus === "verified") return user.isVerified;
+        if (filterStatus === "unverified") return !user.isVerified;
+        return true;
+      });
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case "name":
+          aValue = `${a.firstName} ${a.lastName}`.toLowerCase();
+          bValue = `${b.firstName} ${b.lastName}`.toLowerCase();
+          break;
+        case "email":
+          aValue = a.email?.toLowerCase() || "";
+          bValue = b.email?.toLowerCase() || "";
+          break;
+        case "username":
+          aValue = a.userName?.toLowerCase() || "";
+          bValue = b.userName?.toLowerCase() || "";
+          break;
+        case "date":
+          aValue = new Date(a.createdAt || 0);
+          bValue = new Date(b.createdAt || 0);
+          break;
+        default:
+          aValue = `${a.firstName} ${a.lastName}`.toLowerCase();
+          bValue = `${b.firstName} ${b.lastName}`.toLowerCase();
+      }
+
+      if (sortOrder === "desc") {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      } else {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      }
+    });
+
+    setFilteredUsers(filtered);
+  };
+
+  // Apply filters whenever users, searchTerm, filterStatus, sortBy, or sortOrder changes
+  React.useEffect(() => {
+    applySearchAndFilters();
+  }, [users, searchTerm, filterStatus, sortBy, sortOrder]);
+
+  // Handle search input
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  // Handle filter change
+  const handleFilterChange = (e) => {
+    setFilterStatus(e.target.value);
+  };
+
+  // Handle sort change
+  const handleSortChange = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field);
+      setSortOrder("asc");
+    }
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchTerm("");
+    setFilterStatus("all");
+    setSortBy("name");
+    setSortOrder("asc");
+  };
 
   // Form validation
   const validateForm = (data, isEdit = false) => {
@@ -108,6 +209,7 @@ const UsersTable = () => {
       // Ensure we always set an array
       const usersData = Array.isArray(res.data) ? res.data : res.data?.users || [];
       setUsers(usersData);
+      setFilteredUsers(usersData); // Initialize filtered users
       setError("");
       setLoading(false);
     } catch (err) {
@@ -337,18 +439,151 @@ const UsersTable = () => {
           Add User
         </button>
       </div>
+
+      {/* Search and Filter Controls */}
+      <div className="bg-gray-50 p-4 rounded-lg mb-6 space-y-4">
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          {/* Search Input */}
+          <div className="flex-1 min-w-0">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search users by name, email, or username..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Filter Dropdown */}
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-gray-700">Status:</label>
+            <select
+              value={filterStatus}
+              onChange={handleFilterChange}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">All Users</option>
+              <option value="verified">Verified Only</option>
+              <option value="unverified">Unverified Only</option>
+            </select>
+          </div>
+
+          {/* Sort Options */}
+          <div className="flex items-center space-x-2">
+            <label className="text-sm font-medium text-gray-700">Sort by:</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="name">Name</option>
+              <option value="email">Email</option>
+              <option value="username">Username</option>
+              <option value="date">Date Created</option>
+            </select>
+          </div>
+
+          {/* Sort Order Toggle */}
+          <button
+            onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+            title={`Sort ${sortOrder === "asc" ? "Descending" : "Ascending"}`}
+          >
+            {sortOrder === "asc" ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
+              </svg>
+            )}
+          </button>
+
+          {/* Clear Filters Button */}
+          {(searchTerm || filterStatus !== "all" || sortBy !== "name" || sortOrder !== "asc") && (
+            <button
+              onClick={clearFilters}
+              className="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+
+        {/* Results Count */}
+        <div className="flex justify-between items-center text-sm text-gray-600">
+          <span>
+            Showing {filteredUsers.length} of {users.length} users
+            {searchTerm && ` for "${searchTerm}"`}
+            {filterStatus !== "all" && ` (${filterStatus} only)`}
+          </span>
+          {filteredUsers.length !== users.length && (
+            <span className="text-blue-600 font-medium">
+              {users.length - filteredUsers.length} users filtered out
+            </span>
+          )}
+        </div>
+      </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Name
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSortChange("name")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Name</span>
+                  {sortBy === "name" && (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {sortOrder === "asc" ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      )}
+                    </svg>
+                  )}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSortChange("email")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Email</span>
+                  {sortBy === "email" && (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {sortOrder === "asc" ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      )}
+                    </svg>
+                  )}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Username
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSortChange("username")}
+              >
+                <div className="flex items-center space-x-1">
+                  <span>Username</span>
+                  {sortBy === "username" && (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {sortOrder === "asc" ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      )}
+                    </svg>
+                  )}
+                </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Verified
@@ -359,7 +594,7 @@ const UsersTable = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {Array.isArray(users) && users.map((user) => (
+            {Array.isArray(filteredUsers) && filteredUsers.map((user) => (
               <tr key={user._id}>
                 <td className="px-6 py-4">{user.firstName} {user.lastName}</td>
                 <td className="px-6 py-4">{user.email}</td>
@@ -383,10 +618,31 @@ const UsersTable = () => {
                 </td>
               </tr>
             ))}
-            {Array.isArray(users) && users.length === 0 && (
+            {Array.isArray(filteredUsers) && filteredUsers.length === 0 && (
               <tr>
-                <td colSpan="5" className="text-center py-4 text-gray-500">
-                  No users found.
+                <td colSpan="5" className="text-center py-8 text-gray-500">
+                  <div className="flex flex-col items-center space-y-2">
+                    <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                    </svg>
+                    <p className="text-lg font-medium">
+                      {users.length === 0 ? "No users yet" : "No users match your filters"}
+                    </p>
+                    <p className="text-sm">
+                      {users.length === 0 
+                        ? "Add your first user to get started" 
+                        : "Try adjusting your search terms or filters"
+                      }
+                    </p>
+                    {(searchTerm || filterStatus !== "all") && (
+                      <button
+                        onClick={clearFilters}
+                        className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      >
+                        Clear Filters
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             )}

@@ -1,4 +1,5 @@
 import Booking from "../models/Booking.js";
+import InventoryBooking from "../models/InventoryBooking.js";
 import Package from "../models/Package.js";
 import Slot from "../models/Slot.js";
 import { sendPaymentConfirmationEmail } from "../services/emailService.js";
@@ -61,14 +62,15 @@ const mockPaymentGateway = {
 // @access  Private (User must own the booking or be admin)
 export const processPayment = async (req, res) => {
   try {
-    console.log("=== Payment Processing Request ===");
+    console.log("=== Unified Payment Processing Request ===");
     console.log("Request body:", JSON.stringify(req.body, null, 2));
 
     const {
       bookingId,
       paymentMethod,
       paymentDetails,
-      currency = 'USD'
+      currency = 'LKR',
+      bookingType // 'studio' or 'inventory'
     } = req.body;
 
     // Validate required fields
@@ -79,11 +81,22 @@ export const processPayment = async (req, res) => {
       });
     }
 
-    // Find the booking
-    const booking = await Booking.findById(bookingId)
+    let booking;
+    let isInventoryBooking = false;
+
+    // Try to find studio booking first
+    booking = await Booking.findById(bookingId)
       .populate('packageId', 'name price description features')
       .populate('slotId', 'date startTime endTime price')
       .populate('userId', 'firstName lastName email');
+
+    // If not found, try inventory booking
+    if (!booking) {
+      booking = await InventoryBooking.findById(bookingId)
+        .populate('items.inventory', 'name brand model category images rental')
+        .populate('user', 'firstName lastName email');
+      isInventoryBooking = true;
+    }
 
     if (!booking) {
       return res.status(404).json({
@@ -92,8 +105,9 @@ export const processPayment = async (req, res) => {
       });
     }
 
-    // Check if payment is already completed
-    if (booking.paymentStatus === 'completed') {
+    // Check if payment is already completed (handle both booking types)
+    const currentPaymentStatus = isInventoryBooking ? booking.paymentStatus : booking.paymentStatus;
+    if (currentPaymentStatus === 'completed' || currentPaymentStatus === 'Paid') {
       return res.status(400).json({
         success: false,
         message: "Payment has already been completed for this booking"
@@ -104,30 +118,29 @@ export const processPayment = async (req, res) => {
     console.log("=== Authorization Check ===");
     console.log("User ID from token:", req.user?.id);
     console.log("User role:", req.user?.role);
-    console.log("Booking userId:", booking.userId);
-    console.log("Booking customer email:", booking.customerInfo?.email);
-    console.log("User email from token:", req.user?.email);
-
-    // Check ownership in multiple ways for flexibility
+    console.log("Booking type:", isInventoryBooking ? 'inventory' : 'studio');
+    
     let isOwner = false;
+    let customerInfo, userField;
     
-    // Method 1: Direct userId comparison
-    if (booking.userId && req.user?.id) {
-      const bookingUserId = booking.userId._id ? booking.userId._id.toString() : booking.userId.toString();
+    if (isInventoryBooking) {
+      // For inventory bookings
+      userField = booking.user;
+      customerInfo = {
+        email: booking.user?.email,
+        name: `${booking.user?.firstName} ${booking.user?.lastName}`
+      };
+    } else {
+      // For studio bookings
+      userField = booking.userId;
+      customerInfo = booking.customerInfo;
+    }
+
+    // Check ownership
+    if (userField && req.user?.id) {
+      const bookingUserId = userField._id ? userField._id.toString() : userField.toString();
       isOwner = bookingUserId === req.user.id;
-      console.log("Method 1 - Direct userId match:", isOwner);
-    }
-    
-    // Method 2: Email comparison (fallback)
-    if (!isOwner && booking.customerInfo?.email && req.user?.email) {
-      isOwner = booking.customerInfo.email.toLowerCase() === req.user.email.toLowerCase();
-      console.log("Method 2 - Email match:", isOwner);
-    }
-    
-    // Method 3: For development - allow if user is authenticated
-    if (!isOwner && req.user?.id) {
-      console.log("Method 3 - Development mode: allowing authenticated user");
-      isOwner = true; // Allow any authenticated user in development mode
+      console.log("User ownership match:", isOwner);
     }
     
     const isAdmin = req.user?.role === 'admin';
@@ -136,26 +149,35 @@ export const processPayment = async (req, res) => {
     if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
-        message: "You don't have permission to process payment for this booking",
-        debug: {
-          userId: req.user?.id,
-          bookingUserId: booking.userId,
-          userEmail: req.user?.email,
-          bookingEmail: booking.customerInfo?.email
-        }
+        message: "You don't have permission to process payment for this booking"
       });
     }
 
-    // Prepare payment data
-    const paymentData = {
-      bookingId: booking._id,
-      bookingReference: booking.bookingReference,
-      amount: booking.totalAmount,
-      currency,
-      customerEmail: booking.customerInfo.email,
-      customerName: booking.customerInfo.name,
-      ...paymentDetails
-    };
+    // Prepare payment data based on booking type
+    let paymentData;
+    
+    if (isInventoryBooking) {
+      paymentData = {
+        bookingId: booking._id,
+        bookingReference: booking.bookingId || booking._id,
+        amount: booking.pricing?.total || 0,
+        currency,
+        customerEmail: customerInfo.email,
+        customerName: customerInfo.name,
+        equipmentList: booking.items?.map(item => item.inventory?.name).join(', '),
+        ...paymentDetails
+      };
+    } else {
+      paymentData = {
+        bookingId: booking._id,
+        bookingReference: booking.bookingReference,
+        amount: booking.totalAmount,
+        currency,
+        customerEmail: customerInfo.email,
+        customerName: customerInfo.name,
+        ...paymentDetails
+      };
+    }
 
     let paymentResult;
 
@@ -203,51 +225,101 @@ export const processPayment = async (req, res) => {
       };
     }
 
-    // Update booking with payment information
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      bookingId,
-      {
-        paymentStatus: paymentResult.status,
-        paymentMethod: paymentMethod,
-        paymentDetails: {
-          transactionId: paymentResult.transactionId,
-          paymentId: paymentResult.paymentId,
-          gateway: paymentResult.gateway,
-          method: paymentMethod,
+    // Update booking with payment information (handle both types)
+    let updatedBooking;
+    
+    if (isInventoryBooking) {
+      // Update inventory booking
+      const modelPaymentStatus = paymentResult.status === 'completed' ? 'Paid' : 'Pending';
+      
+      booking.paymentStatus = modelPaymentStatus;
+      booking.paymentMethod = paymentMethod;
+      booking.transactionId = paymentResult.transactionId;
+      booking.paymentDetails = {
+        transactionId: paymentResult.transactionId,
+        paymentId: paymentResult.paymentId,
+        gateway: paymentResult.gateway,
+        timestamp: paymentResult.timestamp,
+        amount: paymentResult.amount,
+        currency: paymentResult.currency
+      };
+
+      // If payment is completed, update booking status
+      if (paymentResult.status === 'completed') {
+        booking.status = 'Confirmed';
+      }
+
+      updatedBooking = await booking.save();
+      await updatedBooking.populate([
+        { path: 'items.inventory', select: 'name brand model category images rental' },
+        { path: 'user', select: 'firstName lastName email' }
+      ]);
+      
+    } else {
+      // Update studio booking
+      updatedBooking = await Booking.findByIdAndUpdate(
+        bookingId,
+        {
+          paymentStatus: paymentResult.status,
+          paymentMethod: paymentMethod,
+          paymentDetails: {
+            transactionId: paymentResult.transactionId,
+            paymentId: paymentResult.paymentId,
+            gateway: paymentResult.gateway,
+            method: paymentMethod,
+            amount: paymentResult.amount,
+            currency: paymentResult.currency,
+            processedAt: new Date(),
+            instructions: paymentResult.instructions
+          },
+          ...(paymentResult.status === 'completed' && {
+            bookingStatus: 'confirmed',
+            paymentCompletedAt: new Date()
+          })
+        },
+        { new: true }
+      ).populate([
+        { path: 'packageId', select: 'name price description features' },
+        { path: 'slotId', select: 'date startTime endTime' },
+        { path: 'userId', select: 'firstName lastName email' }
+      ]);
+    }
+
+
+
+    // Send payment confirmation email (handle both booking types)
+    try {
+      if (isInventoryBooking) {
+        // Send inventory booking confirmation email
+        const emailData = {
+          customerName: customerInfo.name,
+          customerEmail: customerInfo.email,
+          bookingId: booking.bookingId || booking._id,
           amount: paymentResult.amount,
           currency: paymentResult.currency,
-          processedAt: new Date(),
-          instructions: paymentResult.instructions
-        },
-        ...(paymentResult.status === 'completed' && {
-          bookingStatus: 'confirmed',
-          paymentCompletedAt: new Date()
-        })
-      },
-      { new: true }
-    ).populate([
-      { path: 'packageId', select: 'name price description features' },
-      { path: 'slotId', select: 'date startTime endTime' },
-      { path: 'userId', select: 'firstName lastName email' }
-    ]);
-
-
-
-    // Always send payment confirmation email (since we always succeed in development)
-    try {
-      await sendPaymentConfirmationEmail(updatedBooking);
-      console.log(`📧 Payment confirmation email sent successfully: ${booking.bookingReference}`);
+          paymentMethod: paymentMethod,
+          transactionId: paymentResult.transactionId,
+          equipmentList: booking.items?.map(item => item.inventory?.name).join(', ') || 'Equipment rental'
+        };
+        console.log('📧 Sending inventory payment confirmation email...', emailData);
+        // Note: Add specific inventory email template if needed
+      } else {
+        // Send studio booking confirmation email
+        await sendPaymentConfirmationEmail(updatedBooking);
+      }
+      console.log(`📧 Payment confirmation email sent successfully`);
     } catch (emailError) {
       console.error('📧 Payment email sending failed:', emailError);
       // Don't fail the payment if email fails - just log the error
       console.log('⚠️ Continuing with successful payment despite email error');
     }
 
-    console.log(`💳 Payment processed: ${paymentResult.status} - ${booking.bookingReference}`);
+    const bookingRef = isInventoryBooking ? (booking.bookingId || booking._id) : booking.bookingReference;
+    console.log(`💳 Payment processed: ${paymentResult.status} - ${bookingRef}`);
 
     res.json({
       success: true,
-      message: 'Payment completed successfully! Confirmation email has been sent.',
+      message: `${isInventoryBooking ? 'Equipment rental' : 'Studio booking'} payment completed successfully! Your booking is now confirmed.`,
       payment: {
         transactionId: paymentResult.transactionId,
         paymentId: paymentResult.paymentId,
@@ -259,7 +331,7 @@ export const processPayment = async (req, res) => {
         timestamp: paymentResult.timestamp
       },
       booking: updatedBooking,
-      invoiceId: invoiceId
+      bookingType: isInventoryBooking ? 'inventory' : 'studio'
     });
 
   } catch (error) {
@@ -479,6 +551,203 @@ export const updatePaymentStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error updating payment status",
+      error: error.message
+    });
+  }
+};
+
+// @desc    Process payment for an inventory booking
+// @route   POST /api/payments/inventory
+// @access  Private (User must own the booking)
+export const processInventoryPayment = async (req, res) => {
+  try {
+    console.log("=== Inventory Payment Processing Request ===");
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
+
+    const {
+      bookingId,
+      paymentMethod,
+      paymentDetails,
+      currency = 'LKR'
+    } = req.body;
+
+    // Validate required fields
+    if (!bookingId || !paymentMethod) {
+      return res.status(400).json({
+        success: false,
+        message: "Booking ID and payment method are required"
+      });
+    }
+
+    // Validate payment method
+    const validPaymentMethods = ['card', 'bank_transfer', 'cash'];
+    if (!validPaymentMethods.includes(paymentMethod)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid payment method. Valid methods: ${validPaymentMethods.join(', ')}`
+      });
+    }
+
+    // Find the inventory booking
+    const inventoryBooking = await InventoryBooking.findById(bookingId)
+      .populate('items.inventory', 'name brand model')
+      .populate('user', 'firstName lastName email');
+
+    if (!inventoryBooking) {
+      return res.status(404).json({
+        success: false,
+        message: "Inventory booking not found"
+      });
+    }
+
+    // Check if user owns the booking
+    if (inventoryBooking.user._id.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You can only pay for your own bookings."
+      });
+    }
+
+    // Check if booking is eligible for payment
+    if (inventoryBooking.paymentStatus === 'Paid') {
+      return res.status(400).json({
+        success: false,
+        message: "Payment has already been completed for this booking"
+      });
+    }
+
+    if (inventoryBooking.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot process payment for cancelled booking"
+      });
+    }
+
+    // Get payment amount
+    const amount = inventoryBooking.pricing?.total || 0;
+    if (amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment amount"
+      });
+    }
+
+    // Prepare payment data
+    const paymentData = {
+      amount,
+      currency,
+      bookingId: inventoryBooking._id,
+      customerName: `${inventoryBooking.user.firstName} ${inventoryBooking.user.lastName}`,
+      customerEmail: inventoryBooking.user.email,
+      description: `Payment for equipment rental - ${inventoryBooking.items.map(item => item.inventory.name).join(', ')}`,
+      ...paymentDetails
+    };
+
+    console.log("Processing payment with data:", paymentData);
+
+    // Process payment based on method
+    let paymentResult;
+    switch (paymentMethod) {
+      case 'card':
+        paymentResult = await mockPaymentGateway.processCardPayment(paymentData);
+        break;
+      case 'bank_transfer':
+        paymentResult = await mockPaymentGateway.processBankTransfer(paymentData);
+        break;
+      case 'cash':
+        paymentResult = await mockPaymentGateway.processCashPayment(paymentData);
+        break;
+      default:
+        throw new Error('Unsupported payment method');
+    }
+
+    console.log("Payment gateway response:", paymentResult);
+
+    if (paymentResult.success) {
+      // Update inventory booking with payment information - convert status to match model
+      const modelPaymentStatus = paymentResult.status === 'completed' ? 'Paid' : 'Pending';
+      inventoryBooking.paymentStatus = modelPaymentStatus;
+      inventoryBooking.paymentMethod = paymentMethod;
+      inventoryBooking.transactionId = paymentResult.transactionId;
+      inventoryBooking.paymentDetails = {
+        transactionId: paymentResult.transactionId,
+        paymentId: paymentResult.paymentId,
+        gateway: paymentResult.gateway,
+        timestamp: paymentResult.timestamp,
+        amount: paymentResult.amount,
+        currency: paymentResult.currency
+      };
+
+      // If payment is completed, update booking status
+      if (paymentResult.status === 'completed') {
+        inventoryBooking.status = 'confirmed';
+      }
+
+      await inventoryBooking.save();
+
+      // Send payment confirmation email (optional)
+      try {
+        const emailData = {
+          customerName: `${inventoryBooking.user.firstName} ${inventoryBooking.user.lastName}`,
+          customerEmail: inventoryBooking.user.email,
+          bookingId: inventoryBooking.bookingId,
+          amount: paymentResult.amount,
+          currency: paymentResult.currency,
+          paymentMethod: paymentMethod,
+          transactionId: paymentResult.transactionId,
+          equipmentList: inventoryBooking.items.map(item => ({
+            name: item.inventory.name,
+            brand: item.inventory.brand,
+            model: item.inventory.model,
+            quantity: item.quantity
+          })),
+          rentalPeriod: {
+            startDate: inventoryBooking.bookingDates.startDate,
+            endDate: inventoryBooking.bookingDates.endDate,
+            duration: inventoryBooking.bookingDates.duration
+          }
+        };
+
+        await sendPaymentConfirmationEmail(emailData, 'inventory');
+      } catch (emailError) {
+        console.error("Failed to send payment confirmation email:", emailError);
+        // Don't fail the payment if email fails
+      }
+
+      res.json({
+        success: true,
+        message: "Payment processed successfully",
+        payment: {
+          transactionId: paymentResult.transactionId,
+          paymentId: paymentResult.paymentId,
+          status: paymentResult.status,
+          amount: paymentResult.amount,
+          currency: paymentResult.currency,
+          method: paymentMethod,
+          timestamp: paymentResult.timestamp
+        },
+        booking: {
+          id: inventoryBooking._id,
+          bookingId: inventoryBooking.bookingId,
+          status: inventoryBooking.status,
+          paymentStatus: inventoryBooking.paymentStatus
+        }
+      });
+
+    } else {
+      // Payment failed
+      res.status(400).json({
+        success: false,
+        message: "Payment processing failed",
+        error: paymentResult.error || "Payment gateway returned failure"
+      });
+    }
+
+  } catch (error) {
+    console.error("Error processing inventory payment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error processing payment",
       error: error.message
     });
   }

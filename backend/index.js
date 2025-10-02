@@ -20,6 +20,11 @@ import adminRefundRoutes from "./routes/adminRefundRoutes.js";
 import userReviews from "./routes/userReviews.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import userComplaints from "./routes/userComplaints.js";
+import adminReviews from "./routes/adminReviews.js";
+import adminComplaints from "./routes/adminComplaints.js";
+import adminInventoryRoutes from "./routes/adminInventory.js";
+import adminInventoryBookingsRoutes from "./routes/adminInventoryBookings.js";
+import userInventoryBookings from "./routes/userInventoryBookings.js";
 import testRoutes from "./routes/testRoutes.js";
 
 
@@ -44,6 +49,7 @@ app.use("/api/user/bookings", userBookingsRoutes);
 app.use("/api/user/refunds", refundRoutes);
 app.use("/api/user/reviews", userReviews);
 app.use("/api/user/complaints", userComplaints);
+app.use("/api/user/inventory-bookings", userInventoryBookings);
 
 app.use("/api/admin/users", adminUsersRoutes);
 app.use("/api/admin/packages", adminPackagesRoutes);
@@ -51,6 +57,10 @@ app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/admin/slots", adminSlotsRoutes);
 app.use("/api/admin/bookings", adminBookingsRoutes);
 app.use("/api/admin/refunds", adminRefundRoutes);
+app.use("/api/admin/reviews", adminReviews);
+app.use("/api/admin/complaints", adminComplaints);
+app.use("/api/admin/inventory", adminInventoryRoutes);
+app.use("/api/admin/inventory-bookings", adminInventoryBookingsRoutes);
 
 // Debug: Add logging for payment routes
 console.log("Registering payment routes at /api/payments");

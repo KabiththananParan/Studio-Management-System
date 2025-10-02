@@ -7,6 +7,8 @@ import ReviewForm from './Reviews/ReviewForm';
 import ReviewDisplay from './Reviews/ReviewDisplay';
 import ComplaintForm from './Complaints/ComplaintForm';
 import ComplaintDisplay from './Complaints/ComplaintDisplay';
+import UserInventoryBrowsing from '../User/UserInventoryBrowsing';
+import UserInventoryDashboard from '../User/UserInventoryDashboard';
 
 // Icons using lucide-react. The user must include the script tag for lucide-react in their HTML.
 // This is a mock component since we're in a single file.
@@ -53,6 +55,9 @@ const Icon = ({ name, className = "" }) => {
     ),
     CheckCircle: (
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+    ),
+    Package: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.78 0l-8-4A2 2 0 0 1 2 16.76V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"/><path d="M2.32 6.16l10 5 10-5"/><path d="M12 22.76V11.24"/></svg>
     )
   };
   return icons[name] || null;
@@ -2062,6 +2067,10 @@ const UserDashboard = () => {
         return <ProfileView isDarkMode={isDarkMode} />;
       case 'Reviews & Complaints':
         return <ReviewsView isDarkMode={isDarkMode} />;
+      case 'Browse Equipment':
+        return <UserInventoryBrowsing isDarkMode={isDarkMode} />;
+      case 'My Equipment Rentals':
+        return <UserInventoryDashboard isDarkMode={isDarkMode} />;
       default:
         return <DashboardView isDarkMode={isDarkMode} />;
     }
@@ -2070,6 +2079,8 @@ const UserDashboard = () => {
   const navItems = [
     { name: "Dashboard", icon: <Icon name="Dashboard" className="w-5 h-5" />, type: "tab" },
     { name: "My Bookings", icon: <Icon name="Calendar" className="w-5 h-5" />, type: "tab" },
+    { name: "Browse Equipment", icon: <Icon name="Package" className="w-5 h-5" />, type: "tab" },
+    { name: "My Equipment Rentals", icon: <Icon name="BarChart" className="w-5 h-5" />, type: "tab" },
     { name: "Profile", icon: <Icon name="User" className="w-5 h-5" />, type: "tab" },
     { name: "Reviews & Complaints", icon: <Icon name="Star" className="w-5 h-5" />, type: "tab" },
   ];
