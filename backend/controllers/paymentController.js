@@ -2,7 +2,7 @@ import Booking from "../models/Booking.js";
 import InventoryBooking from "../models/InventoryBooking.js";
 import Package from "../models/Package.js";
 import Slot from "../models/Slot.js";
-import { sendPaymentConfirmationEmail } from "../services/emailService.js";
+import { sendPaymentConfirmationEmail, sendInventoryPaymentConfirmationEmail } from "../services/emailService.js";
 
 // Mock payment gateway integration - Always succeeds for development
 // In production, you would integrate with real payment gateways like Stripe, PayPal, etc.
@@ -291,18 +291,8 @@ export const processPayment = async (req, res) => {
     try {
       if (isInventoryBooking) {
         // Send inventory booking confirmation email
-        const emailData = {
-          customerName: customerInfo.name,
-          customerEmail: customerInfo.email,
-          bookingId: booking.bookingId || booking._id,
-          amount: paymentResult.amount,
-          currency: paymentResult.currency,
-          paymentMethod: paymentMethod,
-          transactionId: paymentResult.transactionId,
-          equipmentList: booking.items?.map(item => item.inventory?.name).join(', ') || 'Equipment rental'
-        };
-        console.log('📧 Sending inventory payment confirmation email...', emailData);
-        // Note: Add specific inventory email template if needed
+        console.log('📧 Sending inventory payment confirmation email...');
+        await sendInventoryPaymentConfirmationEmail(updatedBooking);
       } else {
         // Send studio booking confirmation email
         await sendPaymentConfirmationEmail(updatedBooking);
@@ -685,32 +675,13 @@ export const processInventoryPayment = async (req, res) => {
 
       await inventoryBooking.save();
 
-      // Send payment confirmation email (optional)
+      // Send inventory payment confirmation email
       try {
-        const emailData = {
-          customerName: `${inventoryBooking.user.firstName} ${inventoryBooking.user.lastName}`,
-          customerEmail: inventoryBooking.user.email,
-          bookingId: inventoryBooking.bookingId,
-          amount: paymentResult.amount,
-          currency: paymentResult.currency,
-          paymentMethod: paymentMethod,
-          transactionId: paymentResult.transactionId,
-          equipmentList: inventoryBooking.items.map(item => ({
-            name: item.inventory.name,
-            brand: item.inventory.brand,
-            model: item.inventory.model,
-            quantity: item.quantity
-          })),
-          rentalPeriod: {
-            startDate: inventoryBooking.bookingDates.startDate,
-            endDate: inventoryBooking.bookingDates.endDate,
-            duration: inventoryBooking.bookingDates.duration
-          }
-        };
-
-        await sendPaymentConfirmationEmail(emailData, 'inventory');
+        console.log('📧 Sending inventory payment confirmation email for booking:', inventoryBooking.bookingId);
+        await sendInventoryPaymentConfirmationEmail(inventoryBooking);
+        console.log('📧 Inventory payment confirmation email sent successfully');
       } catch (emailError) {
-        console.error("Failed to send payment confirmation email:", emailError);
+        console.error("Failed to send inventory payment confirmation email:", emailError);
         // Don't fail the payment if email fails
       }
 
