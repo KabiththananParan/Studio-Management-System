@@ -25,6 +25,7 @@ import adminComplaints from "./routes/adminComplaints.js";
 import adminInventoryRoutes from "./routes/adminInventory.js";
 import adminInventoryBookingsRoutes from "./routes/adminInventoryBookings.js";
 import userInventoryBookings from "./routes/userInventoryBookings.js";
+import adminSettingsRoutes from "./routes/adminSettings.js";
 import testRoutes from "./routes/testRoutes.js";
 
 
@@ -61,6 +62,7 @@ app.use("/api/admin/reviews", adminReviews);
 app.use("/api/admin/complaints", adminComplaints);
 app.use("/api/admin/inventory", adminInventoryRoutes);
 app.use("/api/admin/inventory-bookings", adminInventoryBookingsRoutes);
+app.use("/api/admin/settings", adminSettingsRoutes);
 
 // Debug: Add logging for payment routes
 console.log("Registering payment routes at /api/payments");

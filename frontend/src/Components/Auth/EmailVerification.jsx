@@ -68,9 +68,27 @@ const EmailVerification = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4 font-sans">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md text-center">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Verify Your Email</h1>
+    <div className="min-h-screen bg-gray-100 font-sans">
+      {/* Navigation Bar */}
+      <nav className="bg-white p-4 flex justify-between items-center shadow-md">
+        <Link to="/" className="flex items-center space-x-2">
+          <span className="font-bold text-xl text-blue-600">StudioPro</span>
+        </Link>
+        <div className="flex items-center space-x-4">
+          <Link to="/signUP-form" className="text-gray-600 hover:text-blue-600 transition-colors flex items-center">
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Sign Up
+          </Link>
+          <Link to="/" className="text-gray-600 hover:text-blue-600 transition-colors">Home</Link>
+        </div>
+      </nav>
+
+      {/* Verification Form Container */}
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 pt-16 pb-8 p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md text-center">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Verify Your Email</h1>
         <p className="text-gray-600 mb-6">
           A 6-digit verification code has been sent to your email address. Please check your inbox and spam folder.
         </p>
@@ -111,6 +129,7 @@ const EmailVerification = () => {
               Resend Code
             </button>
           )}
+        </div>
         </div>
       </div>
     </div>

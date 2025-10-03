@@ -9,6 +9,7 @@ import AdminReviews from './AdminReviews';
 import AdminComplaints from './AdminComplaints';
 import AdminInventory from './AdminInventory';
 import AdminInventoryBookings from './AdminInventoryBookings';
+import AdminSettings from './AdminSettings';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -265,6 +266,12 @@ const AdminDashboard = () => {
                     Inventory Bookings →
                   </button>
                   <button 
+                    onClick={() => setActiveTab('settings')}
+                    className="w-full text-left px-3 py-2 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-800 transition"
+                  >
+                    ⚙️ System Settings →
+                  </button>
+                  <button 
                     onClick={fetchDashboardStats}
                     className="w-full text-left px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 transition"
                   >
@@ -278,32 +285,7 @@ const AdminDashboard = () => {
       case 'bookings':
         return <AdminBookings isDarkMode={isDarkMode} />;
       case 'settings':
-        return (
-          <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-900'} p-6 rounded-2xl shadow-md border`}>
-            <h2 className="text-xl font-bold mb-4">Settings</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span>Dark Mode</span>
-                <button
-                  onClick={toggleTheme}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                    isDarkMode ? 'bg-blue-600' : 'bg-gray-200'
-                  } transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      isDarkMode ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-              <hr className={`${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`} />
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                More settings options will be added here.
-              </p>
-            </div>
-          </div>
-        );
+        return <AdminSettings isDarkMode={isDarkMode} />;
       default:
         return (
           <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-gray-200 text-gray-900'} p-6 rounded-2xl shadow-md border`}>

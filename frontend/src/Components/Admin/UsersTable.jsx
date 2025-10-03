@@ -26,6 +26,25 @@ const UsersTable = () => {
   });
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Report generation states
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportOptions, setReportOptions] = useState({
+    format: "csv", // csv, pdf
+    includeFields: {
+      name: true,
+      email: true,
+      username: true,
+      verified: true,
+      dateCreated: true,
+      dateUpdated: false
+    },
+    dateRange: "all", // all, last30days, last90days, custom
+    customStartDate: "",
+    customEndDate: "",
+    filterStatus: "all" // all, verified, unverified
+  });
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   // Search and Filter Logic
   const applySearchAndFilters = () => {
@@ -409,6 +428,119 @@ const UsersTable = () => {
     }
   };
 
+  // Report Generation Functions
+  const formatDateForFilename = () => {
+    const now = new Date();
+    return now.toISOString().split('T')[0]; // YYYY-MM-DD format
+  };
+
+  const filterUsersByDateRange = (users) => {
+    if (reportOptions.dateRange === "all") return users;
+    
+    const now = new Date();
+    let startDate;
+    
+    switch (reportOptions.dateRange) {
+      case "last30days":
+        startDate = new Date(now.setDate(now.getDate() - 30));
+        break;
+      case "last90days":
+        startDate = new Date(now.setDate(now.getDate() - 90));
+        break;
+      case "custom":
+        if (reportOptions.customStartDate) {
+          startDate = new Date(reportOptions.customStartDate);
+        }
+        break;
+      default:
+        return users;
+    }
+    
+    return users.filter(user => {
+      const userDate = new Date(user.createdAt);
+      const isAfterStart = !startDate || userDate >= startDate;
+      const isBeforeEnd = !reportOptions.customEndDate || userDate <= new Date(reportOptions.customEndDate);
+      return isAfterStart && isBeforeEnd;
+    });
+  };
+
+  const filterUsersByStatus = (users) => {
+    if (reportOptions.filterStatus === "all") return users;
+    return users.filter(user => {
+      if (reportOptions.filterStatus === "verified") return user.isVerified;
+      if (reportOptions.filterStatus === "unverified") return !user.isVerified;
+      return true;
+    });
+  };
+
+  const generateCSVContent = (users) => {
+    const headers = [];
+    const { includeFields } = reportOptions;
+    
+    if (includeFields.name) headers.push('Full Name');
+    if (includeFields.email) headers.push('Email');
+    if (includeFields.username) headers.push('Username');
+    if (includeFields.verified) headers.push('Verified Status');
+    if (includeFields.dateCreated) headers.push('Date Created');
+    if (includeFields.dateUpdated) headers.push('Date Updated');
+    
+    const csvContent = [headers.join(',')];
+    
+    users.forEach(user => {
+      const row = [];
+      if (includeFields.name) row.push(`"${user.firstName} ${user.lastName}"`);
+      if (includeFields.email) row.push(`"${user.email}"`);
+      if (includeFields.username) row.push(`"${user.userName}"`);
+      if (includeFields.verified) row.push(user.isVerified ? 'Verified' : 'Unverified');
+      if (includeFields.dateCreated) row.push(`"${new Date(user.createdAt).toLocaleDateString()}"`);
+      if (includeFields.dateUpdated) row.push(`"${new Date(user.updatedAt).toLocaleDateString()}"`);
+      csvContent.push(row.join(','));
+    });
+    
+    return csvContent.join('\n');
+  };
+
+  const downloadFile = (content, filename, mimeType) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleGenerateReport = () => {
+    setIsGeneratingReport(true);
+    
+    try {
+      // Filter users based on report options
+      let reportUsers = [...filteredUsers]; // Use currently filtered users
+      
+      // Apply additional filters from report options
+      reportUsers = filterUsersByDateRange(reportUsers);
+      reportUsers = filterUsersByStatus(reportUsers);
+      
+      if (reportOptions.format === "csv") {
+        const csvContent = generateCSVContent(reportUsers);
+        const filename = `users-report-${formatDateForFilename()}.csv`;
+        downloadFile(csvContent, filename, 'text/csv');
+      }
+      
+      setShowReportModal(false);
+      // Show success message
+      alert(`Report generated successfully! ${reportUsers.length} users included in the report.`);
+      
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert('Error generating report. Please try again.');
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   if (loading) return <p>Loading users...</p>;
   if (error) return (
     <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
@@ -428,16 +560,27 @@ const UsersTable = () => {
     <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Users</h1>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowAddModal(true);
-          }}
-          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center"
-        >
-          <span className="mr-2">+</span>
-          Add User
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setShowReportModal(true)}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Generate Report
+          </button>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowAddModal(true);
+            }}
+            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center"
+          >
+            <span className="mr-2">+</span>
+            Add User
+          </button>
+        </div>
       </div>
 
       {/* Search and Filter Controls */}
@@ -523,11 +666,16 @@ const UsersTable = () => {
             {searchTerm && ` for "${searchTerm}"`}
             {filterStatus !== "all" && ` (${filterStatus} only)`}
           </span>
-          {filteredUsers.length !== users.length && (
-            <span className="text-blue-600 font-medium">
-              {users.length - filteredUsers.length} users filtered out
+          <div className="flex items-center space-x-4">
+            {filteredUsers.length !== users.length && (
+              <span className="text-blue-600 font-medium">
+                {users.length - filteredUsers.length} users filtered out
+              </span>
+            )}
+            <span className="text-green-600 text-xs">
+              📊 {filteredUsers.length} users available for reporting
             </span>
-          )}
+          </div>
         </div>
       </div>
       <div className="overflow-x-auto">
@@ -794,6 +942,185 @@ const UsersTable = () => {
                 {isSubmitting ? "Adding..." : "Add User"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Generation Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Generate Users Report</h2>
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Report Format */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Report Format</label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="format"
+                      value="csv"
+                      checked={reportOptions.format === "csv"}
+                      onChange={(e) => setReportOptions({...reportOptions, format: e.target.value})}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">CSV (Excel Compatible)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Fields to Include */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Fields to Include</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries({
+                    name: 'Full Name',
+                    email: 'Email Address',
+                    username: 'Username',
+                    verified: 'Verification Status',
+                    dateCreated: 'Date Created',
+                    dateUpdated: 'Date Updated'
+                  }).map(([key, label]) => (
+                    <label key={key} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={reportOptions.includeFields[key]}
+                        onChange={(e) => setReportOptions({
+                          ...reportOptions,
+                          includeFields: {
+                            ...reportOptions.includeFields,
+                            [key]: e.target.checked
+                          }
+                        })}
+                        className="mr-2"
+                      />
+                      <span className="text-sm">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Date Range Filter */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Date Range</label>
+                <div className="space-y-3">
+                  <div className="flex flex-col space-y-2">
+                    {[
+                      { value: 'all', label: 'All Time' },
+                      { value: 'last30days', label: 'Last 30 Days' },
+                      { value: 'last90days', label: 'Last 90 Days' },
+                      { value: 'custom', label: 'Custom Range' }
+                    ].map(option => (
+                      <label key={option.value} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="dateRange"
+                          value={option.value}
+                          checked={reportOptions.dateRange === option.value}
+                          onChange={(e) => setReportOptions({...reportOptions, dateRange: e.target.value})}
+                          className="mr-2"
+                        />
+                        <span className="text-sm">{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  
+                  {reportOptions.dateRange === 'custom' && (
+                    <div className="ml-6 grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Start Date</label>
+                        <input
+                          type="date"
+                          value={reportOptions.customStartDate}
+                          onChange={(e) => setReportOptions({...reportOptions, customStartDate: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1">End Date</label>
+                        <input
+                          type="date"
+                          value={reportOptions.customEndDate}
+                          onChange={(e) => setReportOptions({...reportOptions, customEndDate: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className="block text-sm font-medium mb-2">User Status Filter</label>
+                <select
+                  value={reportOptions.filterStatus}
+                  onChange={(e) => setReportOptions({...reportOptions, filterStatus: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="all">All Users</option>
+                  <option value="verified">Verified Users Only</option>
+                  <option value="unverified">Unverified Users Only</option>
+                </select>
+              </div>
+
+              {/* Report Preview Info */}
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h4 className="font-medium text-blue-800 mb-2">Report Preview</h4>
+                <p className="text-sm text-blue-700">
+                  This report will include <strong>{filteredUsers.length}</strong> users from your current filtered view.
+                  The report will be saved as a <strong>{reportOptions.format.toUpperCase()}</strong> file.
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Additional filters selected in this modal will be applied on top of your current table filters.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="px-4 py-2 text-gray-600 border rounded-lg hover:bg-gray-50"
+                disabled={isGeneratingReport}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleGenerateReport}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center"
+                disabled={isGeneratingReport || !Object.values(reportOptions.includeFields).some(Boolean)}
+              >
+                {isGeneratingReport ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Generate Report
+                  </>
+                )}
+              </button>
+            </div>
+
+            {!Object.values(reportOptions.includeFields).some(Boolean) && (
+              <p className="text-sm text-red-600 mt-2 text-center">
+                Please select at least one field to include in the report.
+              </p>
+            )}
           </div>
         </div>
       )}

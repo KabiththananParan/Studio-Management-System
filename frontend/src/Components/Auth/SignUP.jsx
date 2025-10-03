@@ -76,12 +76,27 @@ const SignUpForm = () => {
    }
   };
 
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-lg">
-        <h1 className="text-3xl font-bold text-center mb-7">Create your account</h1>
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Navigation Bar */}
+      <nav className="bg-white p-4 flex justify-between items-center shadow-md">
+        <Link to="/" className="flex items-center space-x-2">
+          <span className="font-bold text-xl text-blue-600">StudioPro</span>
+        </Link>
+        <div className="flex items-center space-x-4">
+          <Link to="/" className="text-gray-600 hover:text-blue-600 transition-colors flex items-center">
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Home
+          </Link>
+        </div>
+      </nav>
 
-        <div className="flex justify-center mb-6">
+      {/* SignUp Form Container */}
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 pt-16 pb-8 p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-lg">
+          <h1 className="text-3xl font-bold text-center mb-7">Create your account</h1>        <div className="flex justify-center mb-6">
           <Link to="/login-form" className="py-2 px-6 rounded-l-xl text-gray-700 bg-gray-200 font-semibold text-center">Sign In</Link>
           <button className="py-2 px-6 rounded-r-xl text-white bg-blue-600 font-semibold">Sign Up</button>
         </div>
@@ -199,10 +214,9 @@ const SignUpForm = () => {
             className="w-full bg-blue-600 text-white p-3 rounded-xl font-semibold mb-4 hover:bg-blue-700 transition">
             Create Account
           </button>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-export default SignUpForm;
+        </form>
+        </div>
+      </div>
+    </div>
+  );
+};export default SignUpForm;
