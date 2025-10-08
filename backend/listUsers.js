@@ -1,6 +1,14 @@
 import mongoose from 'mongoose';
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from 'url';
 import User from './models/User.js';
 import connectDB from './config/db.js';
+
+// Ensure we load the backend .env using the script directory so it works no matter cwd
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const listTestUsers = async () => {
   try {
