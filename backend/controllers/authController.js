@@ -27,7 +27,7 @@ export const registerUser = async (req, res) => {
     const existingUser = await User.findOne({ $or: [{ email }, { userName }] });
     if (existingUser) return res.status(400).json({ message: "Email or username already exists" });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Remove manual hashing - User model pre-save hook will handle it
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
@@ -36,7 +36,7 @@ export const registerUser = async (req, res) => {
       lastName,
       email,
       userName,
-      password: hashedPassword,
+      password, // Let the pre-save hook handle hashing
       otp,
       otpExpiry,
       isVerified: false
@@ -63,6 +63,68 @@ export const registerUser = async (req, res) => {
   } catch (err) {
     console.error("Register error:", err);
     res.status(500).json({ message: err.message });
+  }
+};
+
+// 📌 Resend OTP
+export const resendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: "Email is already verified" });
+    }
+
+    // Generate new OTP
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Update user with new OTP
+    user.otp = otp;
+    user.otpExpiry = otpExpiry;
+    await user.save();
+
+    res.status(200).json({ message: "New OTP sent to your email." });
+
+    // Send new OTP email
+    try {
+      const mailOptions = {
+        from: `"Studio Manager" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Email Verification Code - Resent",
+        text: `Your new verification code is ${otp}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Email Verification</h2>
+            <p>You requested a new verification code for your Studio Manager account.</p>
+            <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+              <h3 style="margin: 0; font-size: 24px; color: #1f2937;">Your Verification Code:</h3>
+              <div style="font-size: 32px; font-weight: bold; color: #2563eb; margin: 10px 0;">${otp}</div>
+              <p style="margin: 0; color: #6b7280;">This code will expire in 10 minutes</p>
+            </div>
+            <p>If you didn't request this code, please ignore this email.</p>
+          </div>
+        `
+      };
+
+      await transporter.sendMail(mailOptions);
+      console.log(`Resent OTP email to ${email}`);
+    } catch (emailErr) {
+      console.error("Failed to send resend OTP email:", emailErr);
+    }
+
+  } catch (err) {
+    console.error("Resend OTP error:", err);
+    res.status(500).json({ message: "Server error. Please try again later." });
   }
 };
 
@@ -248,9 +310,8 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "User not found" });
     }
 
-    // Update password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
+    // Update password - let pre-save hook handle hashing
+    user.password = newPassword;
     
     // Clear reset fields
     user.resetPasswordOtp = null;

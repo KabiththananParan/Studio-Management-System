@@ -1,13 +1,27 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 const LoginForm = () => {
-  const navigate = useNavigate(); // ✅ Move inside the component
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Check if user came from successful signup or email verification
+  useEffect(() => {
+    if (location.state?.message && (location.state?.newUser || location.state?.emailVerified)) {
+      setSuccessMessage(location.state.message);
+      if (location.state.email) {
+        setEmail(location.state.email); // Pre-fill email from signup/verification
+      }
+      // Clear the success message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000);
+    }
+  }, [location.state]);
 
   const validate = () => {
     let tempErrors = {};
@@ -78,6 +92,13 @@ const LoginForm = () => {
       <div className="flex items-center justify-center min-h-screen bg-gray-100 pt-16 pb-8">
         <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-sm">
           <h2 className="text-2xl font-bold text-center mb-10">Welcome Back!</h2>
+
+          {/* Success Message from Signup */}
+          {successMessage && (
+            <div className="mb-6 p-3 bg-green-50 border border-green-200 rounded-xl">
+              <p className="text-green-600 text-sm text-center">✅ {successMessage}</p>
+            </div>
+          )}
 
         <div className="flex justify-center mb-6">
           <button className="py-2 px-6 rounded-l-xl text-white bg-blue-600 font-semibold">Sign In</button>

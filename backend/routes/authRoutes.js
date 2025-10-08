@@ -3,6 +3,7 @@ import {
   loginUser, 
   registerUser, 
   verifyOtp, 
+  resendOtp,
   forgotPassword, 
   verifyResetOtp, 
   resetPassword,
@@ -13,6 +14,7 @@ const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/verify-otp", verifyOtp);
+router.post("/resend-otp", resendOtp);
 router.post("/login", loginUser);
 
 // Token verification route

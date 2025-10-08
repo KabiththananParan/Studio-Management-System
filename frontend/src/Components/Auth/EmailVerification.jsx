@@ -7,8 +7,10 @@ const EmailVerification = () => {
 
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [resendCountdown, setResendCountdown] = useState(60);
   const [isCountingDown, setIsCountingDown] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // useEffect hook to manage the countdown timer
   useEffect(() => {
@@ -43,28 +45,63 @@ const EmailVerification = () => {
       return;
     }
 
-    const response = await fetch("http://localhost:5000/api/auth/verify-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: location.state?.email, otp }),
-    });
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
 
-    const data = await response.json();
-    if (response.ok) {
-      localStorage.setItem("token", data.token);
-      navigate("/userDashboard");
-    } else {
-      setError(data.message || "Invalid OTP");
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: location.state?.email, otp }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setSuccess('✅ Email verified successfully! Redirecting to login...');
+        
+        // Wait 2 seconds to show success message, then redirect
+        setTimeout(() => {
+          navigate('/login-form', { 
+            state: { 
+              message: "Email verified successfully! You can now login with your account.",
+              email: location.state?.email,
+              emailVerified: true
+            } 
+          });
+        }, 2000);
+      } else {
+        setError(data.message || "Invalid OTP");
+      }
+    } catch (error) {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (isCountingDown) return;
 
-    console.log('Resending OTP...');
-    setResendCountdown(60);
-    setIsCountingDown(true);
-    alert("A new OTP has been sent to your email.");
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/resend-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: location.state?.email }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setResendCountdown(60);
+        setIsCountingDown(true);
+        setSuccess("✅ A new verification code has been sent to your email.");
+        setError('');
+      } else {
+        setError(data.message || "Failed to resend verification code. Please try again.");
+      }
+    } catch (error) {
+      setError("Network error. Please try again.");
+    }
   };
 
   return (
@@ -89,9 +126,15 @@ const EmailVerification = () => {
       <div className="flex items-center justify-center min-h-screen bg-gray-100 pt-16 pb-8 p-4">
         <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md text-center">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Verify Your Email</h1>
-        <p className="text-gray-600 mb-6">
-          A 6-digit verification code has been sent to your email address. Please check your inbox and spam folder.
-        </p>
+          <p className="text-gray-600 mb-2">
+            A 6-digit verification code has been sent to:
+          </p>
+          <p className="text-blue-600 font-semibold mb-4">
+            {location.state?.email || 'your email address'}
+          </p>
+          <p className="text-gray-600 mb-6">
+            Please check your inbox and spam folder.
+          </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -108,13 +151,19 @@ const EmailVerification = () => {
               autoComplete="off"
             />
             {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+            {success && <p className="text-green-600 text-sm mt-2">{success}</p>}
           </div>
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white p-4 rounded-xl font-semibold hover:bg-blue-700 transition"
+            disabled={isLoading}
+            className={`w-full p-4 rounded-xl font-semibold transition ${
+              isLoading 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
           >
-            Verify Account
+            {isLoading ? 'Verifying...' : 'Verify Account'}
           </button>
         </form>
 

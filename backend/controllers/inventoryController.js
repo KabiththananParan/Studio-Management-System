@@ -195,6 +195,7 @@ export const updateInventoryItem = async (req, res) => {
     console.log('User ID:', req.user?.id);
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.log('❌ Invalid ObjectId:', id);
       return res.status(400).json({
         success: false,
         message: 'Invalid inventory ID'
@@ -222,6 +223,7 @@ export const updateInventoryItem = async (req, res) => {
 
     // Check if serial number is being updated and if it already exists
     if (updateData.serialNumber) {
+      console.log('🔍 Checking serial number:', updateData.serialNumber);
       const existingItem = await Inventory.findOne({
         serialNumber: updateData.serialNumber,
         _id: { $ne: id },
@@ -229,11 +231,13 @@ export const updateInventoryItem = async (req, res) => {
       });
       
       if (existingItem) {
+        console.log('❌ Serial number conflict found:', existingItem._id);
         return res.status(400).json({
           success: false,
           message: 'Serial number already exists'
         });
       }
+      console.log('✅ Serial number is unique');
     }
 
     const updatedItem = await Inventory.findOneAndUpdate(
@@ -258,12 +262,22 @@ export const updateInventoryItem = async (req, res) => {
     console.error('Error updating inventory item:', error);
     
     if (error.code === 11000) {
+      console.log('❌ Duplicate key error (400)');
       return res.status(400).json({
         success: false,
         message: 'Serial number already exists'
       });
     }
     
+    if (error.name === 'ValidationError') {
+      console.log('❌ Mongoose validation error (400):', error.message);
+      return res.status(400).json({
+        success: false,
+        message: `Validation error: ${error.message}`
+      });
+    }
+    
+    console.log('❌ Server error (500):', error.message);
     res.status(500).json({
       success: false,
       message: 'Error updating inventory item'
