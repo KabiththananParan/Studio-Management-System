@@ -174,9 +174,9 @@ const AdminDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>Total Revenue</h3>
-                    <p className="text-3xl font-bold text-green-600">${dashboardStats.revenue.total}</p>
+                    <p className="text-3xl font-bold text-green-600">LKR {Math.round(dashboardStats.revenue.total).toLocaleString()}</p>
                     <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      Studio: ${dashboardStats.revenue.studio || 0} • Rentals: ${dashboardStats.revenue.inventory || 0}
+                      Studio: LKR {Math.round(dashboardStats.revenue.studio || 0).toLocaleString()} • Rentals: LKR {Math.round(dashboardStats.revenue.inventory || 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="text-4xl">�</div>
