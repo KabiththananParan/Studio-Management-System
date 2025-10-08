@@ -189,6 +189,11 @@ export const updateInventoryItem = async (req, res) => {
   try {
     const { id } = req.params;
     
+    console.log('Update inventory item request:');
+    console.log('ID:', id);
+    console.log('Body:', req.body);
+    console.log('User ID:', req.user?.id);
+    
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
@@ -206,6 +211,14 @@ export const updateInventoryItem = async (req, res) => {
     delete updateData.createdBy;
     delete updateData.createdAt;
     delete updateData.usageHistory;
+    
+    // Fix MongoDB conflict: Remove individual supplier fields if supplier object exists
+    if (updateData.supplier) {
+      delete updateData['supplier.name'];
+      delete updateData['supplier.contact'];
+      delete updateData['supplier.email'];
+      console.log('🔧 Cleaned supplier field conflicts');
+    }
 
     // Check if serial number is being updated and if it already exists
     if (updateData.serialNumber) {

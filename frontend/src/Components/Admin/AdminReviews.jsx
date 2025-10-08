@@ -240,6 +240,59 @@ const AdminReviews = () => {
     return "★".repeat(rating) + "☆".repeat(5 - rating);
   };
 
+  // Export reviews to CSV
+  const exportReviews = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Authentication required");
+        return;
+      }
+
+      // Build query parameters for filters
+      const params = new URLSearchParams({
+        format: 'csv',
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+        ...(ratingFilter !== 'all' && { rating: ratingFilter }),
+        ...(searchTerm && { search: searchTerm })
+      });
+
+      const response = await fetch(`http://localhost:5000/api/admin/reviews/export?${params}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Create blob from response
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `reviews-${new Date().toISOString().split('T')[0]}.csv`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      console.log('Reviews exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      setError(`Failed to export reviews: ${error.message}`);
+    }
+  };
+
   // Get status badge color
   const getStatusBadgeColor = (status) => {
     const colors = {
@@ -271,7 +324,7 @@ const AdminReviews = () => {
               {showAnalytics ? "Hide Analytics" : "Show Analytics"}
             </button>
             <button
-              onClick={() => window.open(`http://localhost:5000/api/admin/reviews/export?format=csv`, '_blank')}
+              onClick={exportReviews}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
             >
               Export CSV

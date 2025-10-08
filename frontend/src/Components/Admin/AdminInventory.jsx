@@ -973,6 +973,12 @@ const InventoryModal = ({ isOpen, onClose, mode, item, onSuccess, onError }) => 
         ? 'http://localhost:5000/api/admin/inventory'
         : `http://localhost:5000/api/admin/inventory/${item._id}`;
 
+      // Debug logging
+      console.log('Edit mode:', mode);
+      console.log('Item ID:', item?._id);
+      console.log('URL:', url);
+      console.log('Token exists:', !!token);
+
       // Prepare the data
       const submitData = {
         ...formData,
@@ -1008,11 +1014,14 @@ const InventoryModal = ({ isOpen, onClose, mode, item, onSuccess, onError }) => 
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Server error response:', errorData);
         throw new Error(errorData.message || 'Failed to save item');
       }
 
+      console.log('Item saved successfully');
       onSuccess();
     } catch (error) {
+      console.error('Form submission error:', error);
       onError(error.message);
     } finally {
       setLoading(false);
