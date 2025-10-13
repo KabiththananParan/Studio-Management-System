@@ -88,7 +88,8 @@ const inventorySchema = new mongoose.Schema({
       required: function() {
         return this.rental?.isAvailableForRent;
       },
-      min: 0
+      min: 0,
+      default: 100
     },
     weeklyRate: {
       type: Number,

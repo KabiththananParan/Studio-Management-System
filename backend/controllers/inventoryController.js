@@ -117,6 +117,9 @@ export const getInventoryById = async (req, res) => {
 // Create new inventory item
 export const createInventoryItem = async (req, res) => {
   try {
+    console.log('🔍 Creating inventory item with data:', JSON.stringify(req.body, null, 2));
+    console.log('🔍 User ID:', req.user?.id);
+
     const itemData = {
       ...req.body,
       createdBy: req.user.id
@@ -131,6 +134,23 @@ export const createInventoryItem = async (req, res) => {
         success: false,
         message: `Missing required fields: ${missingFields.join(', ')}`
       });
+    }
+
+    // Set default rental configuration if not provided
+    if (!itemData.rental) {
+      itemData.rental = {
+        isAvailableForRent: true,
+        dailyRate: 100, // Default daily rate
+        weeklyRate: 600,
+        monthlyRate: 2000,
+        minimumRentalDays: 1,
+        maximumRentalDays: 30,
+        depositRequired: true,
+        depositAmount: Math.max(200, itemData.purchasePrice * 0.1) // 10% of purchase price or minimum 200
+      };
+    } else if (itemData.rental.isAvailableForRent && !itemData.rental.dailyRate) {
+      // If rental is enabled but no daily rate provided, set default
+      itemData.rental.dailyRate = 100;
     }
 
     // Check if serial number already exists
@@ -169,6 +189,12 @@ export const createInventoryItem = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating inventory item:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      name: error.name,
+      errors: error.errors
+    });
     
     if (error.code === 11000) {
       return res.status(400).json({
@@ -177,9 +203,19 @@ export const createInventoryItem = async (req, res) => {
       });
     }
     
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: `Validation error: ${validationErrors.join(', ')}`,
+        details: validationErrors
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      message: 'Error creating inventory item'
+      message: 'Error creating inventory item',
+      details: error.message
     });
   }
 };

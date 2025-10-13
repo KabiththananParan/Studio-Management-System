@@ -75,12 +75,30 @@ export const getAllSlots = async (req, res) => {
 // @access  Private/Admin
 export const createSlot = async (req, res) => {
   try {
+    console.log('🔍 Creating slot with data:', JSON.stringify(req.body, null, 2));
+    console.log('🔍 User ID:', req.user?.id);
+
     const { packageId, date, startTime, endTime, price, isAvailable, notes } = req.body;
 
-    // Validate required fields
-    if (!packageId || !date || !startTime || !endTime || price === undefined) {
+    // Detailed validation with specific error messages
+    const missingFields = [];
+    if (!packageId) missingFields.push('packageId');
+    if (!date) missingFields.push('date');
+    if (!startTime) missingFields.push('startTime');
+    if (!endTime) missingFields.push('endTime');
+    if (price === undefined || price === null) missingFields.push('price');
+
+    if (missingFields.length > 0) {
       return res.status(400).json({ 
-        message: "Package ID, date, start time, end time, and price are required" 
+        message: `Missing required fields: ${missingFields.join(', ')}`,
+        receivedData: { packageId, date, startTime, endTime, price, isAvailable, notes }
+      });
+    }
+
+    // Validate data types and values
+    if (isNaN(price) || price < 0) {
+      return res.status(400).json({ 
+        message: "Price must be a valid number greater than or equal to 0" 
       });
     }
 

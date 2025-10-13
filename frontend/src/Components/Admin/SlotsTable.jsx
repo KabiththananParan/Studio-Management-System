@@ -108,8 +108,187 @@ const SlotsTable = () => {
     }
   };
 
+  const checkExistingSlots = (date, startTime, endTime) => {
+    const existingSlotsOnDate = slots.filter(slot => {
+      const slotDate = new Date(slot.date).toDateString();
+      const formDate = new Date(date).toDateString();
+      return slotDate === formDate;
+    });
+
+    const conflictingSlots = existingSlotsOnDate.filter(slot => {
+      const slotStart = slot.startTime;
+      const slotEnd = slot.endTime;
+      
+      // Check if times overlap
+      return (startTime < slotEnd && endTime > slotStart);
+    });
+
+    return { existingSlotsOnDate, conflictingSlots };
+  };
+
+  // Function to suggest available time slots
+  const findAvailableTimeSlots = (date, startTime, endTime) => {
+    const existingSlotsOnDate = slots.filter(slot => {
+      const slotDate = new Date(slot.date).toDateString();
+      const formDate = new Date(date).toDateString();
+      return slotDate === formDate;
+    }).sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+    const suggestions = [];
+    const startHour = parseInt(startTime.split(':')[0]);
+    const startMin = parseInt(startTime.split(':')[1]);
+    const endHour = parseInt(endTime.split(':')[0]);
+    const endMin = parseInt(endTime.split(':')[1]);
+    
+    const durationMs = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+    const durationHours = Math.floor(durationMs / 60);
+    const durationMinutes = durationMs % 60;
+    
+    // Business hours (9 AM to 9 PM)
+    const businessStart = { hour: 9, min: 0 };
+    const businessEnd = { hour: 21, min: 0 };
+    
+    const formatTime = (hour, min) => `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+    
+    // Check gaps between existing slots for availability
+    if (existingSlotsOnDate.length === 0) {
+      suggestions.push(`${formatTime(businessStart.hour, businessStart.min)} - ${formatTime(businessStart.hour + durationHours, businessStart.min + durationMinutes)}`);
+    } else {
+      // Check before first slot
+      const firstSlot = existingSlotsOnDate[0];
+      const firstStartHour = parseInt(firstSlot.startTime.split(':')[0]);
+      const firstStartMin = parseInt(firstSlot.startTime.split(':')[1]);
+      
+      if ((firstStartHour * 60 + firstStartMin) - (businessStart.hour * 60 + businessStart.min) >= durationMs) {
+        suggestions.push(`${formatTime(businessStart.hour, businessStart.min)} - ${formatTime(businessStart.hour + durationHours, businessStart.min + durationMinutes)}`);
+      }
+      
+      // Check gaps between slots
+      for (let i = 0; i < existingSlotsOnDate.length - 1; i++) {
+        const currentSlot = existingSlotsOnDate[i];
+        const nextSlot = existingSlotsOnDate[i + 1];
+        
+        const currentEndHour = parseInt(currentSlot.endTime.split(':')[0]);
+        const currentEndMin = parseInt(currentSlot.endTime.split(':')[1]);
+        const nextStartHour = parseInt(nextSlot.startTime.split(':')[0]);
+        const nextStartMin = parseInt(nextSlot.startTime.split(':')[1]);
+        
+        const gapMs = (nextStartHour * 60 + nextStartMin) - (currentEndHour * 60 + currentEndMin);
+        
+        if (gapMs >= durationMs) {
+          const suggestedEndHour = currentEndHour + durationHours;
+          const suggestedEndMin = currentEndMin + durationMinutes;
+          suggestions.push(`${formatTime(currentEndHour, currentEndMin)} - ${formatTime(suggestedEndHour, suggestedEndMin)}`);
+        }
+      }
+      
+      // Check after last slot
+      const lastSlot = existingSlotsOnDate[existingSlotsOnDate.length - 1];
+      const lastEndHour = parseInt(lastSlot.endTime.split(':')[0]);
+      const lastEndMin = parseInt(lastSlot.endTime.split(':')[1]);
+      
+      if ((businessEnd.hour * 60 + businessEnd.min) - (lastEndHour * 60 + lastEndMin) >= durationMs) {
+        const suggestedEndHour = lastEndHour + durationHours;
+        const suggestedEndMin = lastEndMin + durationMinutes;
+        suggestions.push(`${formatTime(lastEndHour, lastEndMin)} - ${formatTime(suggestedEndHour, suggestedEndMin)}`);
+      }
+    }
+    
+    return suggestions.slice(0, 3); // Return up to 3 suggestions
+  };
+
   const handleCreateSlot = async () => {
     const token = localStorage.getItem("token");
+    
+    // Validation before sending
+    if (!selectedPackage) {
+      setError('Please select a package first');
+      console.log('Debug: selectedPackage is empty:', selectedPackage);
+      console.log('Debug: available packages:', packages);
+      return;
+    }
+
+    if (!slotForm.date || !slotForm.startTime || !slotForm.endTime) {
+      setError('Please fill in all required fields (date, start time, end time)');
+      console.log('Debug: form validation failed:', {
+        date: slotForm.date,
+        startTime: slotForm.startTime,
+        endTime: slotForm.endTime,
+        price: slotForm.price
+      });
+      return;
+    }
+
+    // Validate that start time is before end time
+    if (slotForm.startTime >= slotForm.endTime) {
+      setError('Start time must be before end time');
+      return;
+    }
+
+    // Validate that the date is not in the past
+    const selectedDate = new Date(slotForm.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      setError('Cannot create slots for past dates');
+      return;
+    }
+
+    // Check for conflicts with existing slots
+    const { existingSlotsOnDate, conflictingSlots } = checkExistingSlots(
+      slotForm.date, 
+      slotForm.startTime, 
+      slotForm.endTime
+    );
+
+    if (conflictingSlots.length > 0) {
+      const conflictDetails = conflictingSlots.map(slot => 
+        `${slot.startTime} - ${slot.endTime}`
+      ).join(', ');
+      
+      // Get suggestions for alternative times
+      const suggestions = findAvailableTimeSlots(
+        slotForm.date, 
+        slotForm.startTime, 
+        slotForm.endTime
+      );
+      
+      let errorMessage = `Time slot conflicts with existing slots: ${conflictDetails}.`;
+      
+      if (suggestions.length > 0) {
+        errorMessage += ` Suggested available times: ${suggestions.join(', ')}`;
+      } else {
+        errorMessage += ' No alternative times available on this date.';
+      }
+      
+      setError(errorMessage);
+      return;
+    }
+
+    // Show helpful info if there are other slots on the same date
+    if (existingSlotsOnDate.length > 0) {
+      console.log('Existing slots on this date:', existingSlotsOnDate.map(slot => 
+        `${slot.startTime} - ${slot.endTime}`
+      ));
+    }
+
+    if (slotForm.price < 0 || isNaN(slotForm.price)) {
+      setError('Please enter a valid price');
+      return;
+    }
+
+    const requestData = {
+      packageId: selectedPackage,
+      date: slotForm.date,
+      startTime: slotForm.startTime,
+      endTime: slotForm.endTime,
+      price: Number(slotForm.price),
+      isAvailable: slotForm.isAvailable,
+      notes: slotForm.notes || ''
+    };
+
+    console.log('Creating slot with data:', requestData);
     
     try {
       const response = await fetch("http://localhost:5000/api/admin/slots", {
@@ -118,20 +297,27 @@ const SlotsTable = () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          packageId: selectedPackage,
-          ...slotForm
-        })
+        body: JSON.stringify(requestData)
       });
       
-      if (!response.ok) throw new Error('Failed to create slot');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Server error response:', errorData);
+        
+        // Provide specific error messages for different conflict types
+        if (errorData.message.includes('conflicts with existing slot')) {
+          throw new Error(`Time slot conflict! There's already a slot from ${requestData.startTime} to ${requestData.endTime} on ${requestData.date}. Please choose a different time or check existing slots below.`);
+        } else {
+          throw new Error(errorData.message || 'Failed to create slot');
+        }
+      }
       
       await fetchSlots(); // Refresh slots
       setIsCreateModalOpen(false);
       resetForm();
       setError('');
     } catch (err) {
-      setError('Failed to create slot');
+      setError(err.message || 'Failed to create slot');
       console.error('Error creating slot:', err);
     }
   };
@@ -420,6 +606,64 @@ const SlotsTable = () => {
                   : 'bg-white border-gray-300 text-gray-900'
               }`}
             />
+            
+            {/* Show existing slots for the selected date */}
+            {slotForm.date && (() => {
+              const existingOnDate = slots.filter(slot => 
+                slot.date.split('T')[0] === slotForm.date
+              );
+              
+              if (existingOnDate.length > 0) {
+                return (
+                  <div className={`mt-2 p-3 rounded-lg ${
+                    isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-blue-50 border-blue-200'
+                  } border`}>
+                    <div className={`text-sm font-medium mb-2 ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
+                      Existing slots on {new Date(slotForm.date).toLocaleDateString()}:
+                    </div>
+                    <div className="space-y-1">
+                      {existingOnDate
+                        .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                        .map((slot, index) => (
+                          <div 
+                            key={slot._id || index}
+                            className={`text-xs p-2 rounded ${
+                              isDarkMode 
+                                ? 'bg-gray-700 text-gray-300' 
+                                : 'bg-white text-gray-600'
+                            }`}
+                          >
+                            <span className="font-medium">
+                              {slot.startTime} - {slot.endTime}
+                            </span>
+                            {slot.package && (
+                              <span className="ml-2 text-blue-600 dark:text-blue-400">
+                                ({slot.package.name || 'Package'})
+                              </span>
+                            )}
+                            <span className={`ml-2 px-1 py-0.5 rounded text-xs ${
+                              slot.isAvailable 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            }`}>
+                              {slot.isAvailable ? 'Available' : 'Booked'}
+                            </span>
+                          </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div className={`mt-2 p-2 rounded text-sm ${
+                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>
+                  No existing slots on this date
+                </div>
+              );
+            })()}
           </div>
           
           <div className="grid grid-cols-2 gap-4">
