@@ -10,6 +10,8 @@ import AdminComplaints from './AdminComplaints';
 import AdminInventory from './AdminInventory';
 import AdminInventoryBookings from './AdminInventoryBookings';
 import AdminSettings from './AdminSettings';
+import BookingTrendsChart from './Charts/BookingTrendsChart';
+import BookingDistributionChart from './Charts/BookingDistributionChart';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -182,6 +184,12 @@ const AdminDashboard = () => {
                   <div className="text-4xl">�</div>
                 </div>
               </div>
+            </div>
+
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <BookingTrendsChart isDarkMode={isDarkMode} />
+              <BookingDistributionChart isDarkMode={isDarkMode} dashboardStats={dashboardStats} />
             </div>
 
             {/* Revenue and Additional Stats */}
