@@ -80,10 +80,28 @@ const BookingTrendsChart = ({ isDarkMode }) => {
   }
 
   return (
-    <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-6 rounded-2xl shadow-md border`}>
-      <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-        📈 Booking Trends (Last 6 Months)
-      </h3>
+    <div className={`group relative overflow-hidden rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 ${
+      isDarkMode 
+        ? 'bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 border-gray-600' 
+        : 'bg-gradient-to-br from-white via-blue-50 to-white border-blue-200'
+    } border-2`}>
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div className="relative p-8">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className={`text-xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'} flex items-center space-x-3`}>
+            <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-green-500">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <span>Booking Trends (Last 6 Months)</span>
+          </h3>
+          <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+            isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-blue-100 text-blue-800'
+          }`}>
+            📊 Analytics
+          </div>
+        </div>
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={trendsData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -144,21 +162,24 @@ const BookingTrendsChart = ({ isDarkMode }) => {
             />
           </LineChart>
         </ResponsiveContainer>
-      </div>
-      {trendsData.length > 0 && (
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-blue-50'}`}>
-            <span className={`${isDarkMode ? 'text-gray-300' : 'text-blue-700'}`}>
-              Total Bookings: <strong>{trendsData.reduce((sum, item) => sum + item.bookings, 0)}</strong>
-            </span>
-          </div>
-          <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-green-50'}`}>
-            <span className={`${isDarkMode ? 'text-gray-300' : 'text-green-700'}`}>
-              Total Revenue: <strong>LKR {trendsData.reduce((sum, item) => sum + item.revenue, 0).toLocaleString()}</strong>
-            </span>
-          </div>
         </div>
-      )}
+        {trendsData.length > 0 && (
+          <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
+            <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-blue-50/70'} backdrop-blur-sm border ${isDarkMode ? 'border-gray-600' : 'border-blue-200'}`}>
+              <span className={`${isDarkMode ? 'text-gray-300' : 'text-blue-700'} flex items-center space-x-2`}>
+                <span className="text-blue-500">📊</span>
+                <span>Total Bookings: <strong className="text-lg">{trendsData.reduce((sum, item) => sum + item.bookings, 0)}</strong></span>
+              </span>
+            </div>
+            <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-green-50/70'} backdrop-blur-sm border ${isDarkMode ? 'border-gray-600' : 'border-green-200'}`}>
+              <span className={`${isDarkMode ? 'text-gray-300' : 'text-green-700'} flex items-center space-x-2`}>
+                <span className="text-green-500">💰</span>
+                <span>Total Revenue: <strong className="text-lg">LKR {trendsData.reduce((sum, item) => sum + item.revenue, 0).toLocaleString()}</strong></span>
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

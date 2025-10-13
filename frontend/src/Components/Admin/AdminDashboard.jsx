@@ -305,15 +305,25 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100'}`}>
       {/* Header */}
-      <header className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow-sm border-b`}>
+      <header className={`${isDarkMode ? 'bg-gray-800/90 border-gray-700/50' : 'bg-white/90 border-gray-200/50'} shadow-lg border-b backdrop-blur-md sticky top-0 z-50`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>
-                Admin Dashboard
-              </h1>
+            <div className="flex items-center space-x-4">
+              <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg">
+                <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className={`text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent`}>
+                  Admin Dashboard
+                </h1>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Manage your studio operations with ease
+                </p>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               {/* Theme Toggle Button */}
@@ -351,77 +361,97 @@ const AdminDashboard = () => {
 
       <div className="flex">
         {/* Sidebar */}
-        <nav className={`w-64 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm min-h-screen`}>
+        <nav className={`w-64 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg min-h-screen border-r ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="p-4">
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               <li>
                 <button
                   onClick={() => setActiveTab('dashboard')}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition ${
+                  className={`group w-full text-left px-4 py-3 rounded-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-3 ${
                     activeTab === 'dashboard'
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
                       : isDarkMode 
-                        ? 'text-gray-300 hover:bg-gray-700' 
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'text-gray-300 hover:bg-gray-700 hover:text-white' 
+                        : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
                   }`}
                 >
-                  📊 Dashboard
+                  <span className="text-lg">📊</span>
+                  <span className="font-medium">Dashboard</span>
+                  {activeTab === 'dashboard' && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  )}
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => setActiveTab('users')}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition ${
+                  className={`group w-full text-left px-4 py-3 rounded-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-3 ${
                     activeTab === 'users'
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg'
                       : isDarkMode 
-                        ? 'text-gray-300 hover:bg-gray-700' 
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'text-gray-300 hover:bg-gray-700 hover:text-white' 
+                        : 'text-gray-700 hover:bg-green-50 hover:text-green-700'
                   }`}
                 >
-                  👥 Users
+                  <span className="text-lg">👥</span>
+                  <span className="font-medium">Users</span>
+                  {activeTab === 'users' && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  )}
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => setActiveTab('packages')}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition ${
+                  className={`group w-full text-left px-4 py-3 rounded-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-3 ${
                     activeTab === 'packages'
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg'
                       : isDarkMode 
-                        ? 'text-gray-300 hover:bg-gray-700' 
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'text-gray-300 hover:bg-gray-700 hover:text-white' 
+                        : 'text-gray-700 hover:bg-purple-50 hover:text-purple-700'
                   }`}
                 >
-                  📦 Packages
+                  <span className="text-lg">📦</span>
+                  <span className="font-medium">Packages</span>
+                  {activeTab === 'packages' && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  )}
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => setActiveTab('slots')}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition ${
+                  className={`group w-full text-left px-4 py-3 rounded-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-3 ${
                     activeTab === 'slots'
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
                       : isDarkMode 
-                        ? 'text-gray-300 hover:bg-gray-700' 
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'text-gray-300 hover:bg-gray-700 hover:text-white' 
+                        : 'text-gray-700 hover:bg-orange-50 hover:text-orange-700'
                   }`}
                 >
-                  🕒 Slots
+                  <span className="text-lg">🕒</span>
+                  <span className="font-medium">Slots</span>
+                  {activeTab === 'slots' && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  )}
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => setActiveTab('bookings')}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition ${
+                  className={`group w-full text-left px-4 py-3 rounded-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-3 ${
                     activeTab === 'bookings'
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg'
                       : isDarkMode 
-                        ? 'text-gray-300 hover:bg-gray-700' 
-                        : 'text-gray-700 hover:bg-gray-100'
+                        ? 'text-gray-300 hover:bg-gray-700 hover:text-white' 
+                        : 'text-gray-700 hover:bg-indigo-50 hover:text-indigo-700'
                   }`}
                 >
-                  📅 Bookings
+                  <span className="text-lg">📅</span>
+                  <span className="font-medium">Bookings</span>
+                  {activeTab === 'bookings' && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  )}
                 </button>
               </li>
               <li>
@@ -513,8 +543,10 @@ const AdminDashboard = () => {
         </nav>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">
-          {renderContent()}
+        <main className="flex-1 p-8">
+          <div className="max-w-7xl mx-auto">
+            {renderContent()}
+          </div>
         </main>
       </div>
     </div>

@@ -168,7 +168,11 @@ const BookingDistributionChart = ({ isDarkMode, dashboardStats }) => {
 
   if (loading && activeChart === 'packages') {
     return (
-      <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-6 rounded-2xl shadow-md border`}>
+      <div className={`group relative overflow-hidden rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 ${
+        isDarkMode 
+          ? 'bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 border-gray-600' 
+          : 'bg-gradient-to-br from-white via-purple-50 to-white border-purple-200'
+      } border-2`}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <span className={`ml-3 ${isDarkMode ? 'text-gray-200' : 'text-gray-600'}`}>Loading chart...</span>
@@ -178,84 +182,99 @@ const BookingDistributionChart = ({ isDarkMode, dashboardStats }) => {
   }
 
   return (
-    <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-6 rounded-2xl shadow-md border`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-          🥧 Distribution Charts
-        </h3>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => setActiveChart('bookingTypes')}
-            className={`px-3 py-1 rounded-lg text-sm transition ${
-              activeChart === 'bookingTypes'
-                ? 'bg-blue-500 text-white'
-                : isDarkMode
-                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Types
-          </button>
-          <button
-            onClick={() => setActiveChart('bookingStatus')}
-            className={`px-3 py-1 rounded-lg text-sm transition ${
-              activeChart === 'bookingStatus'
-                ? 'bg-blue-500 text-white'
-                : isDarkMode
-                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Status
-          </button>
-          <button
-            onClick={() => setActiveChart('packages')}
-            className={`px-3 py-1 rounded-lg text-sm transition ${
-              activeChart === 'packages'
-                ? 'bg-blue-500 text-white'
-                : isDarkMode
-                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Packages
-          </button>
+    <div className={`group relative overflow-hidden rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 ${
+      isDarkMode 
+        ? 'bg-gradient-to-br from-gray-800 via-gray-900 to-gray-800 border-gray-600' 
+        : 'bg-gradient-to-br from-white via-purple-50 to-white border-purple-200'
+    } border-2`}>
+      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div className="relative p-8">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className={`text-xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'} flex items-center space-x-3`}>
+            <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 11-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15.586 13V12a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <span>Distribution Charts</span>
+          </h3>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setActiveChart('bookingTypes')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 ${
+                activeChart === 'bookingTypes'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                  : isDarkMode
+                    ? 'bg-gray-700/50 text-gray-300 hover:bg-gray-600 border border-gray-600'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+              }`}
+            >
+              📊 Types
+            </button>
+            <button
+              onClick={() => setActiveChart('bookingStatus')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 ${
+                activeChart === 'bookingStatus'
+                  ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-lg'
+                  : isDarkMode
+                    ? 'bg-gray-700/50 text-gray-300 hover:bg-gray-600 border border-gray-600'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+              }`}
+            >
+              ⚡ Status
+            </button>
+            <button
+              onClick={() => setActiveChart('packages')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 transform hover:scale-105 ${
+                activeChart === 'packages'
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                  : isDarkMode
+                    ? 'bg-gray-700/50 text-gray-300 hover:bg-gray-600 border border-gray-600'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+              }`}
+            >
+              📦 Packages
+            </button>
+          </div>
         </div>
+
+        {error && activeChart === 'packages' ? (
+          <div className="flex items-center justify-center h-64">
+            <p className="text-red-500">{error}</p>
+          </div>
+        ) : (
+          renderChart()
+        )}
+
+        {/* Summary stats */}
+        {activeChart === 'bookingTypes' && bookingTypesData.length > 0 && (
+          <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
+            <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-blue-50/70'} backdrop-blur-sm border ${isDarkMode ? 'border-gray-600' : 'border-blue-200'}`}>
+              <span className={`${isDarkMode ? 'text-gray-300' : 'text-blue-700'} flex items-center space-x-2`}>
+                <span className="text-blue-500">🏢</span>
+                <span>Studio Revenue: <strong className="text-lg">LKR {Math.round(dashboardStats.revenue?.studio || 0).toLocaleString()}</strong></span>
+              </span>
+            </div>
+            <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-green-50/70'} backdrop-blur-sm border ${isDarkMode ? 'border-gray-600' : 'border-green-200'}`}>
+              <span className={`${isDarkMode ? 'text-gray-300' : 'text-green-700'} flex items-center space-x-2`}>
+                <span className="text-green-500">📦</span>
+                <span>Rental Revenue: <strong className="text-lg">LKR {Math.round(dashboardStats.revenue?.inventory || 0).toLocaleString()}</strong></span>
+              </span>
+            </div>
+          </div>
+        )}
+
+        {activeChart === 'packages' && packagePopularityData.length > 0 && (
+          <div className="mt-6">
+            <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-700/50' : 'bg-purple-50/70'} backdrop-blur-sm border ${isDarkMode ? 'border-gray-600' : 'border-purple-200'}`}>
+              <span className={`${isDarkMode ? 'text-gray-300' : 'text-purple-700'} flex items-center space-x-2`}>
+                <span className="text-purple-500">🏆</span>
+                <span>Most Popular: <strong className="text-lg">{packagePopularityData[0]?.name}</strong> ({packagePopularityData[0]?.value} bookings)</span>
+              </span>
+            </div>
+          </div>
+        )}
       </div>
-
-      {error && activeChart === 'packages' ? (
-        <div className="flex items-center justify-center h-64">
-          <p className="text-red-500">{error}</p>
-        </div>
-      ) : (
-        renderChart()
-      )}
-
-      {/* Summary stats */}
-      {activeChart === 'bookingTypes' && bookingTypesData.length > 0 && (
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-blue-50'}`}>
-            <span className={`${isDarkMode ? 'text-gray-300' : 'text-blue-700'}`}>
-              Studio Revenue: <strong>LKR {Math.round(dashboardStats.revenue?.studio || 0).toLocaleString()}</strong>
-            </span>
-          </div>
-          <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-green-50'}`}>
-            <span className={`${isDarkMode ? 'text-gray-300' : 'text-green-700'}`}>
-              Rental Revenue: <strong>LKR {Math.round(dashboardStats.revenue?.inventory || 0).toLocaleString()}</strong>
-            </span>
-          </div>
-        </div>
-      )}
-
-      {activeChart === 'packages' && packagePopularityData.length > 0 && (
-        <div className="mt-4">
-          <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-purple-50'}`}>
-            <span className={`${isDarkMode ? 'text-gray-300' : 'text-purple-700'}`}>
-              Most Popular: <strong>{packagePopularityData[0]?.name}</strong> ({packagePopularityData[0]?.value} bookings)
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
