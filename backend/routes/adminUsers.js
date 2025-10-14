@@ -1,5 +1,6 @@
 import express from "express";
 import User from "../models/User.js";
+import Admin from "../models/Admin.js";
 import { protect, admin } from "../middleware/authMiddleware.js"; // protect + admin middleware
 
 const router = express.Router();
@@ -140,6 +141,34 @@ router.put("/:id", protect, admin, async (req, res) => {
   } catch (err) {
     console.error("Error updating user:", err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get all admins for assignment purposes - Admin only
+router.get("/admins", protect, admin, async (req, res) => {
+  try {
+    const admins = await Admin.find().select("-password");
+    
+    // Format admins for assignment dropdown - using email as name since Admin model is basic
+    const formattedAdmins = admins.map(admin => ({
+      _id: admin._id,
+      name: admin.email, // Using email as display name since no firstName/lastName in Admin model
+      email: admin.email,
+      displayName: admin.email
+    }));
+    
+    res.json({ 
+      success: true, 
+      data: {
+        admins: formattedAdmins
+      }
+    });
+  } catch (err) {
+    console.error("Error fetching admins:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error" 
+    });
   }
 });
 

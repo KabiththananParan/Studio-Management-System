@@ -150,7 +150,7 @@ const AdminComplaints = () => {
   const fetchAvailableAdmins = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:5000/api/admin/users", {
+      const response = await axios.get("http://localhost:5000/api/admin/users/admins", {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -159,6 +159,7 @@ const AdminComplaints = () => {
       }
     } catch (error) {
       console.error("Fetch admins error:", error);
+      setError("Failed to fetch available admins");
     }
   };
 
@@ -214,6 +215,11 @@ const AdminComplaints = () => {
   const addComplaintResponse = async () => {
     if (!responseMessage.trim()) {
       setError("Response message is required");
+      return;
+    }
+
+    if (responseMessage.trim().length < 10) {
+      setError("Response message must be at least 10 characters long");
       return;
     }
 
@@ -1078,12 +1084,33 @@ const AdminComplaints = () => {
                 </div>
               )}
               
-              <textarea
-                value={responseMessage}
-                onChange={(e) => setResponseMessage(e.target.value)}
-                placeholder="Enter your response to this complaint..."
-                className="w-full h-32 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="mb-2">
+                <textarea
+                  value={responseMessage}
+                  onChange={(e) => setResponseMessage(e.target.value)}
+                  placeholder="Enter your response to this complaint..."
+                  className={`w-full h-32 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
+                    responseMessage.trim().length < 10 && responseMessage.trim().length > 0
+                      ? 'border-red-300 focus:ring-red-500' 
+                      : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                />
+                <div className="flex justify-between items-center mt-1">
+                  <span className={`text-sm ${
+                    responseMessage.trim().length < 10 && responseMessage.trim().length > 0
+                      ? 'text-red-500' 
+                      : 'text-gray-500'
+                  }`}>
+                    {responseMessage.trim().length < 10 && responseMessage.trim().length > 0 
+                      ? `Minimum 10 characters required (${responseMessage.length}/10)`
+                      : `${responseMessage.length} characters`
+                    }
+                  </span>
+                  {responseMessage.trim().length >= 10 && (
+                    <span className="text-green-500 text-sm">✓ Valid length</span>
+                  )}
+                </div>
+              </div>
               
               <div className="flex justify-end space-x-3 mt-4">
                 <button
@@ -1094,7 +1121,7 @@ const AdminComplaints = () => {
                 </button>
                 <button
                   onClick={addComplaintResponse}
-                  disabled={!responseMessage.trim()}
+                  disabled={!responseMessage.trim() || responseMessage.trim().length < 10}
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Send Response

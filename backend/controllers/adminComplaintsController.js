@@ -488,26 +488,35 @@ export const addComplaintResponse = async (req, res) => {
       });
     }
 
-    const complaint = await Complaint.findByIdAndUpdate(
-      id,
-      {
-        adminResponse: {
-          message: message.trim(),
-          respondedBy: req.user._id,
-          respondedAt: new Date()
-        },
-        lastUpdatedBy: req.user._id,
-        ...(complaint?.status === 'pending' && { status: 'in_progress' })
-      },
-      { new: true }
-    );
-
-    if (!complaint) {
+    // First, find the complaint to check its current status
+    const existingComplaint = await Complaint.findById(id);
+    if (!existingComplaint) {
       return res.status(404).json({
         success: false,
         message: 'Complaint not found'
       });
     }
+
+    // Prepare update data
+    const updateData = {
+      adminResponse: {
+        message: message.trim(),
+        respondedBy: req.user._id,
+        respondedAt: new Date()
+      },
+      lastUpdatedBy: req.user._id
+    };
+
+    // If complaint is pending, change to in_progress
+    if (existingComplaint.status === 'pending') {
+      updateData.status = 'in_progress';
+    }
+
+    const complaint = await Complaint.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true }
+    );
 
     res.json({
       success: true,
