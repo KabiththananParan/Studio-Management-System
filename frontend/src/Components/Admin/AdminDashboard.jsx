@@ -12,6 +12,7 @@ import AdminInventoryBookings from './AdminInventoryBookings';
 import AdminSettings from './AdminSettings';
 import BookingTrendsChart from './Charts/BookingTrendsChart';
 import BookingDistributionChart from './Charts/BookingDistributionChart';
+import AdminNotifications from './AdminNotifications';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -326,6 +327,9 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Notifications */}
+              <AdminNotifications isDarkMode={isDarkMode} />
+              
               {/* Theme Toggle Button */}
               <button
                 onClick={toggleTheme}

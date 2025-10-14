@@ -26,6 +26,7 @@ import adminInventoryRoutes from "./routes/adminInventory.js";
 import adminInventoryBookingsRoutes from "./routes/adminInventoryBookings.js";
 import userInventoryBookings from "./routes/userInventoryBookings.js";
 import adminSettingsRoutes from "./routes/adminSettings.js";
+import adminNotificationsRoutes from "./routes/adminNotifications.js";
 import testRoutes from "./routes/testRoutes.js";
 
 
@@ -79,6 +80,7 @@ app.use("/api/reviews", reviewRoutes);
 // Test routes for debugging
 app.use("/api/test", testRoutes);
 
+app.use("/api/admin", adminNotificationsRoutes);
 app.use("/api/auth/admin", adminRoutes);
 
 
