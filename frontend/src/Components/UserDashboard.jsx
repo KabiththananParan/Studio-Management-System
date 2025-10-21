@@ -295,6 +295,8 @@ const BookingsView = ({ isDarkMode = false }) => {
   const [refundingBooking, setRefundingBooking] = useState(null);
   const [refundEligibility, setRefundEligibility] = useState(null);
   const [isRequestingRefund, setIsRequestingRefund] = useState(false);
+  // Search state for bookings
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch user bookings
   useEffect(() => {
@@ -817,6 +819,18 @@ const BookingsView = ({ isDarkMode = false }) => {
     );
   }
 
+  // Filter bookings by search term
+  const filteredBookings = bookings.filter((booking) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.trim().toLowerCase();
+    return (
+      (booking.package?.name || "").toLowerCase().includes(term) ||
+      (booking.customerInfo?.name || "").toLowerCase().includes(term) ||
+      (booking._id || "").toLowerCase().includes(term) ||
+      (booking.slot?.date ? new Date(booking.slot.date).toLocaleDateString().toLowerCase().includes(term) : false)
+    );
+  });
+
   return (
     <div className="p-6 md:p-8">
       <div className="mb-6">
@@ -824,9 +838,22 @@ const BookingsView = ({ isDarkMode = false }) => {
         <p className={`mt-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
           Manage your studio bookings and track their status
         </p>
+        {/* Search Bar for Bookings */}
+        <div className="mt-4 max-w-md">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Search bookings by package, name, ID, or date..."
+            className={`pl-10 pr-4 py-2 rounded-full border w-full ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500'} focus:outline-none focus:ring-2 transition-colors duration-200`}
+          />
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+            <Icon name="Search" />
+          </span>
+        </div>
       </div>
 
-      {bookings.length === 0 ? (
+      {filteredBookings.length === 0 ? (
         <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-8 text-center`}>
           <Icon name="Calendar" className={`w-16 h-16 mx-auto mb-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
           <h3 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
@@ -869,7 +896,7 @@ const BookingsView = ({ isDarkMode = false }) => {
                 </tr>
               </thead>
               <tbody className={`${isDarkMode ? 'bg-gray-800 divide-gray-700' : 'bg-white divide-gray-200'}`}>
-                {bookings.map((booking) => (
+                {filteredBookings.map((booking) => (
                   <tr key={booking._id} className={isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
@@ -1999,6 +2026,9 @@ const UserDashboard = () => {
     const savedTheme = localStorage.getItem('dashboardTheme');
     return savedTheme === 'dark';
   });
+  // Search state
+  const [searchValue, setSearchValue] = useState("");
+  const [searchError, setSearchError] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -2049,6 +2079,24 @@ const UserDashboard = () => {
     localStorage.removeItem("token"); // Remove auth token
     sessionStorage.removeItem("activeSession"); // Clear session flag
     navigate("/"); // Redirect to home page
+  };
+
+  // Search handler
+  const handleSearchInput = (e) => {
+    setSearchValue(e.target.value);
+    setSearchError("");
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === "Enter") {
+      if (!searchValue.trim()) {
+        setSearchError("Please enter a search term.");
+        return;
+      }
+      // Example: navigate to a search results page
+      navigate(`/search?query=${encodeURIComponent(searchValue.trim())}`);
+      setSearchValue("");
+    }
   };
 
   const handleNavigation = (path) => {
@@ -2175,18 +2223,26 @@ const UserDashboard = () => {
               >
                 <Icon name={isDarkMode ? 'Sun' : 'Moon'} className="w-5 h-5" />
               </button>
-              <div className="relative hidden md:block">
+              {/* <div className="relative hidden md:block">
                 <input
                   type="text"
+                  value={searchValue}
+                  onChange={handleSearchInput}
+                  onKeyDown={handleSearchKeyDown}
                   placeholder="Search..."
                   className={`pl-10 pr-4 py-2 rounded-full border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-400' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500'} focus:outline-none focus:ring-2 transition-colors duration-200`}
                 />
-                <Icon name="Search" />
-              </div>
-              <button className={`relative p-2 rounded-full ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'} transition-colors duration-200`}>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <Icon name="Search" />
+                </span>
+                {searchError && (
+                  <span className="absolute left-0 -bottom-6 text-xs text-red-500">{searchError}</span>
+                )}
+              </div> */}
+              {/* <button className={`relative p-2 rounded-full ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'} transition-colors duration-200`}>
                 <Icon name="Bell" className="w-6 h-6" />
                 <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
-              </button>
+              </button> */}
               <div className="relative">
                 <button
                   onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
