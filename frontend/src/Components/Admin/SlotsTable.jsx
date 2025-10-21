@@ -457,11 +457,11 @@ const SlotsTable = () => {
                  packages.length === 0 ? 'No packages available' : 
                  'Choose a package...'}
               </option>
-              {packages.map((pkg) => (
-                <option key={pkg._id} value={pkg._id}>
-                  {pkg.name} - ${pkg.price}
-                </option>
-              ))}
+              {packages.filter(pkg => pkg.isActive).map((pkg) => (
+                  <option key={pkg._id} value={pkg._id}>
+                    {pkg.name} - ${pkg.price}
+                  </option>
+                ))}
             </select>
             {packagesLoading && (
               <div className="flex items-center mt-2">
