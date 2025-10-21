@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 const AdminBookings = ({ isDarkMode }) => {
+
   const [bookings, setBookings] = useState([]);
   const [packages, setPackages] = useState([]);
   const [users, setUsers] = useState([]);
@@ -209,20 +210,72 @@ const AdminBookings = ({ isDarkMode }) => {
     slot.isAvailable || (modalType === 'edit' && slot._id === selectedBooking?.slotId?._id)
   );
 
+
+  // --- Report Generation Helper ---
+  const handleGenerateReport = () => {
+    if (!bookings || bookings.length === 0) {
+      alert('No bookings to export.');
+      return;
+    }
+    // Define CSV headers
+    const headers = [
+      'Booking Reference', 'Customer Name', 'Email', 'Phone', 'Package', 'Slot Date', 'Slot Time', 'Total Amount', 'Payment Status', 'Booking Status'
+    ];
+    // Map bookings to CSV rows
+    const rows = bookings.map(b => [
+      b.bookingReference,
+      b.customerInfo?.name,
+      b.customerInfo?.email,
+      b.customerInfo?.phone,
+      b.packageName,
+      b.slotId?.date ? new Date(b.slotId.date).toLocaleDateString() : '',
+      b.slotId ? `${b.slotId.startTime} - ${b.slotId.endTime}` : '',
+      b.totalAmount,
+      b.paymentStatus,
+      b.bookingStatus
+    ]);
+    // Build CSV string
+    let csvContent = '';
+    csvContent += headers.join(',') + '\n';
+    rows.forEach(row => {
+      csvContent += row.map(val => `"${val ?? ''}"`).join(',') + '\n';
+    });
+    // Download as file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bookings_report_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+        <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}> 
           Bookings Management
         </h2>
-        <button
-          onClick={() => openModal('create')}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition flex items-center"
-        >
-          <span className="mr-2">+</span>
-          Create New Booking
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleGenerateReport}
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition flex items-center"
+            title="Download bookings report as CSV"
+          >
+            <span className="mr-2">📄</span>
+            Generate Report
+          </button>
+          <button
+            onClick={() => openModal('create')}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition flex items-center"
+          >
+            <span className="mr-2">+</span>
+            Create New Booking
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
