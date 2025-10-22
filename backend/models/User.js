@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema(
     otp: { type: String },
     otpExpiry: { type: Date },
     isVerified: { type: Boolean, default: false },
+    profilePhotoUrl: { type: String, default: "" },
     // Add these fields for password reset
     resetPasswordOtp: { type: String },
     resetPasswordExpiry: { type: Date },

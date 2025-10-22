@@ -2248,7 +2248,17 @@ const UserDashboard = () => {
                   onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                   className={`flex items-center space-x-2 p-2 rounded-full ${isDarkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'} transition-colors duration-200`}
                 >
-                  <div className="h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">U</div>
+                  {user?.profilePhotoUrl ? (
+                    <img
+                      src={`http://localhost:5000${user.profilePhotoUrl}`}
+                      alt="Profile"
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
+                      {(user?.firstName?.[0] || user?.email?.[0] || 'U').toUpperCase()}
+                    </div>
+                  )}
                   <span className="hidden md:inline">{loadingUser ? "Loading..." : user?.email}</span> 
 
                   <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 transform transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>

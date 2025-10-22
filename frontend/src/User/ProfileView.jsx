@@ -12,6 +12,8 @@ const ProfileView = () => {
     email: "",
     password: "",
   });
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState("");
 
   // ✅ Fetch profile
   useEffect(() => {
@@ -115,6 +117,41 @@ const ProfileView = () => {
     }
   };
 
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    setPhotoError("");
+    if (!file) return;
+
+    if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
+      setPhotoError('Only JPG, PNG, or WEBP images are allowed');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) { // 2MB
+      setPhotoError('File is too large. Max 2MB');
+      return;
+    }
+
+    try {
+      setPhotoUploading(true);
+      const token = localStorage.getItem('token');
+      const form = new FormData();
+      form.append('photo', file);
+      const res = await fetch('http://localhost:5000/api/user/profile/photo', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Upload failed');
+      // Update user state with returned user (contains profilePhotoUrl)
+      if (data?.user) setUser(data.user);
+    } catch (err) {
+      setPhotoError(err.message || 'Upload failed');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
   if (loading) return <p className="p-6">Loading profile...</p>;
   if (error) return <p className="p-6 text-red-500">{error}</p>;
 
@@ -122,20 +159,37 @@ const ProfileView = () => {
       <div className="px-2 py-4 sm:p-6 md:p-10 max-w-full sm:max-w-xl md:max-w-2xl mx-auto">
         {/* Glassmorphism Card */}
         <div className="relative bg-white bg-opacity-60 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-200 p-4 sm:p-6 md:p-10">
-          {/* Animated Avatar */}
+          {/* Avatar / Profile Photo */}
           <div className="flex flex-col items-center mb-8">
             <div className="relative">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shadow-lg animate-float flex items-center justify-center">
-                <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-white select-none">
-                  {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
-                </span>
-              </div>
+              {user?.profilePhotoUrl ? (
+                <img
+                  src={`http://localhost:5000${user.profilePhotoUrl}`}
+                  alt="Profile"
+                  className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full object-cover shadow-lg animate-float"
+                />
+              ) : (
+                <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shadow-lg animate-float flex items-center justify-center">
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-white select-none">
+                    {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                  </span>
+                </div>
+              )}
               <span className="absolute bottom-2 right-2 bg-green-400 text-white text-xs px-2 py-1 rounded-full shadow animate-pulse">Active</span>
             </div>
-            <h2 className="mt-4 text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 text-center">
+            <h2 className="mt-4 text-2xl sm:text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 text-center">
               {user.firstName} {user.lastName}
             </h2>
             <p className="text-gray-500 text-base sm:text-lg">@{user.userName}</p>
+
+            {/* Photo upload control */}
+            <div className="mt-4 flex flex-col items-center gap-2">
+              <label className="cursor-pointer bg-gray-100 text-gray-800 px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-200">
+                <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handlePhotoChange} />
+                {photoUploading ? 'Uploading…' : 'Change Photo'}
+              </label>
+              {photoError && <span className="text-sm text-red-500">{photoError}</span>}
+            </div>
           </div>
 
           <div className="mb-8 text-center">
