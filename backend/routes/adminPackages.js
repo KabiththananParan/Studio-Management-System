@@ -1,5 +1,6 @@
 import express from "express";
 import Package from "../models/Package.js";
+import Booking from "../models/Booking.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -12,6 +13,105 @@ router.get("/", protect, admin, async (req, res) => {
   } catch (err) {
     console.error("Error fetching packages:", err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Generate packages report (CSV/JSON)
+// GET /api/admin/packages/report?from=YYYY-MM-DD&to=YYYY-MM-DD&format=csv|json&activeOnly=true
+router.get("/report", protect, admin, async (req, res) => {
+  try {
+    const { from, to, format = "csv", activeOnly } = req.query;
+
+    // Fetch all packages (optionally only active)
+    const pkgFilter = {};
+    if (activeOnly === "true") pkgFilter.isActive = true;
+    const pkgs = await Package.find(pkgFilter).lean();
+
+    // Build booking date filter
+    const bookingMatch = {};
+    if (from || to) {
+      bookingMatch.bookingDate = {};
+      if (from) bookingMatch.bookingDate.$gte = new Date(from);
+      if (to) bookingMatch.bookingDate.$lte = new Date(to);
+    }
+
+    // Aggregate booking stats by package
+    const stats = await Booking.aggregate([
+      { $match: { ...bookingMatch } },
+      {
+        $group: {
+          _id: "$packageId",
+          packageName: { $first: "$packageName" },
+          totalBookings: { $sum: 1 },
+          completed: { $sum: { $cond: [{ $eq: ["$bookingStatus", "completed"] }, 1, 0] } },
+          cancelled: { $sum: { $cond: [{ $eq: ["$bookingStatus", "cancelled"] }, 1, 0] } },
+          revenue: { $sum: "$totalAmount" },
+          avgAmount: { $avg: "$totalAmount" },
+          lastBookingAt: { $max: "$createdAt" },
+        },
+      },
+    ]);
+
+    const statsMap = new Map(stats.map((s) => [String(s._id), s]));
+
+    // Compose rows
+    const rows = pkgs.map((p) => {
+      const s = statsMap.get(String(p._id));
+      return {
+        PackageName: p.name,
+        Price: p.price,
+        DurationHours: p.duration,
+        Active: p.isActive ? "Yes" : "No",
+        TotalBookings: s?.totalBookings || 0,
+        Completed: s?.completed || 0,
+        Cancelled: s?.cancelled || 0,
+        Revenue: s?.revenue || 0,
+        AverageBookingValue: s?.avgAmount ? Number(s.avgAmount.toFixed(2)) : 0,
+        LastBookingAt: s?.lastBookingAt ? new Date(s.lastBookingAt).toISOString() : "",
+        CreatedAt: p.createdAt?.toISOString?.() || "",
+      };
+    });
+
+    if (format === "csv") {
+      // Build CSV manually to avoid extra deps
+      const headers = Object.keys(rows[0] || {
+        PackageName: "",
+        Price: "",
+        DurationHours: "",
+        Active: "",
+        TotalBookings: "",
+        Completed: "",
+        Cancelled: "",
+        Revenue: "",
+        AverageBookingValue: "",
+        LastBookingAt: "",
+        CreatedAt: "",
+      });
+
+      const escapeVal = (v) => {
+        if (v === null || v === undefined) return "";
+        const str = String(v);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+      };
+
+      const csv = [headers.join(",")]
+        .concat(rows.map((r) => headers.map((h) => escapeVal(r[h])).join(",")))
+        .join("\n");
+
+      const filename = `packages_report_${new Date().toISOString().slice(0, 10)}.csv`;
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+      return res.status(200).send(csv);
+    }
+
+    // Default: JSON
+    return res.json({ generatedAt: new Date(), count: rows.length, rows });
+  } catch (err) {
+    console.error("Error generating packages report:", err);
+    res.status(500).json({ message: "Server error generating report" });
   }
 });
 
@@ -159,5 +259,4 @@ router.patch("/:id/status", protect, admin, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
 export default router;

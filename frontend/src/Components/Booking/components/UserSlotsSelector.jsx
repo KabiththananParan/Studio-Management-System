@@ -7,6 +7,15 @@ const UserSlotsSelector = ({ selectedPackage, onSlotSelect, onBack }) => {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestSubmitting, setRequestSubmitting] = useState(false);
+  const [requestForm, setRequestForm] = useState({
+    preferredDate: '',
+    name: '',
+    email: '',
+    phone: '',
+    note: ''
+  });
 
   useEffect(() => {
     if (selectedPackage?.id || selectedPackage?._id) {
@@ -104,6 +113,48 @@ const UserSlotsSelector = ({ selectedPackage, onSlotSelect, onBack }) => {
 
   const availableDates = getAvailableDates();
 
+  const submitRequest = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please log in to submit a slot request.');
+      return;
+    }
+    if (!requestForm.preferredDate) {
+      alert('Please select a preferred date');
+      return;
+    }
+    setRequestSubmitting(true);
+    try {
+      const packageId = selectedPackage?.id || selectedPackage?._id;
+      const res = await fetch(`http://localhost:5000/api/user/slots/${packageId}/request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          preferredDate: requestForm.preferredDate,
+          note: requestForm.note,
+          contact: {
+            name: requestForm.name,
+            email: requestForm.email,
+            phone: requestForm.phone,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Failed to submit request');
+      alert('Request submitted! We will contact you soon.');
+      setShowRequestForm(false);
+      setRequestForm({ preferredDate: '', name: '', email: '', phone: '', note: '' });
+    } catch (e) {
+      console.error('Submit request error:', e);
+      alert(e.message || 'Failed to submit request');
+    } finally {
+      setRequestSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -165,13 +216,53 @@ const UserSlotsSelector = ({ selectedPackage, onSlotSelect, onBack }) => {
             <p className="text-gray-600 mb-4">
               There are currently no available time slots for this package.
             </p>
-            <button
-              onClick={fetchSlots}
-              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </button>
+            {!showRequestForm ? (
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={fetchSlots}
+                  className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition border border-gray-200"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </button>
+                <button
+                  onClick={() => setShowRequestForm(true)}
+                  className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                >
+                  Request a Slot
+                </button>
+              </div>
+            ) : (
+              <div className="max-w-xl mx-auto mt-6 text-left bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-semibold mb-3">Request a Slot</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Preferred Date</label>
+                    <input type="date" value={requestForm.preferredDate} onChange={(e)=>setRequestForm({...requestForm, preferredDate: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Phone (optional)</label>
+                    <input type="tel" value={requestForm.phone} onChange={(e)=>setRequestForm({...requestForm, phone: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="e.g. 0712345678" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Name (optional)</label>
+                    <input type="text" value={requestForm.name} onChange={(e)=>setRequestForm({...requestForm, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Email (optional)</label>
+                    <input type="email" value={requestForm.email} onChange={(e)=>setRequestForm({...requestForm, email: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <label className="block text-sm text-gray-600 mb-1">Note (optional)</label>
+                  <textarea value={requestForm.note} onChange={(e)=>setRequestForm({...requestForm, note: e.target.value})} rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Tell us about your preferred time or any flexibility"></textarea>
+                </div>
+                <div className="mt-4 flex gap-3 justify-end">
+                  <button onClick={() => setShowRequestForm(false)} className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100">Cancel</button>
+                  <button onClick={submitRequest} disabled={requestSubmitting} className={`px-4 py-2 rounded-lg text-white ${requestSubmitting? 'bg-gray-400' : 'bg-purple-600 hover:bg-purple-700'}`}>{requestSubmitting ? 'Submitting...' : 'Submit Request'}</button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <>

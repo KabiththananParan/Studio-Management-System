@@ -1,5 +1,7 @@
 import Slot from "../models/Slot.js";
 import Package from "../models/Package.js";
+import SlotRequest from "../models/SlotRequest.js";
+import User from "../models/User.js";
 
 // @desc    Get available slots for a specific package (public/user access)
 // @route   GET /api/user/slots/:packageId
@@ -300,5 +302,54 @@ export const getSlotStats = async (req, res) => {
   } catch (error) {
     console.error("Error fetching slot stats:", error);
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// @desc    Submit a request when no slots are available for a package
+// @route   POST /api/user/slots/:packageId/request
+// @access  Protected (user)
+export const submitSlotRequest = async (req, res) => {
+  try {
+    const { packageId } = req.params;
+    const { preferredDate, note, contact } = req.body || {};
+
+    // Verify package exists and is active
+    const packageDoc = await Package.findById(packageId);
+    if (!packageDoc || !packageDoc.isActive) {
+      return res.status(404).json({ message: "Package not found or inactive" });
+    }
+
+    // Build contact info: use provided contact or derive from user profile
+    let contactInfo = contact || {};
+    if ((!contactInfo.name || !contactInfo.email) && req.user?.id) {
+      const user = await User.findById(req.user.id).lean();
+      if (user) {
+        contactInfo = {
+          name: contactInfo.name || `${user.firstName} ${user.lastName}`.trim(),
+          email: contactInfo.email || user.email,
+          phone: contactInfo.phone || undefined,
+        };
+      }
+    }
+
+    // Create request document
+    const requestDoc = await SlotRequest.create({
+      userId: req.user?.id || undefined,
+      packageId: packageDoc._id,
+      packageName: packageDoc.name,
+      preferredDate: preferredDate ? new Date(preferredDate) : undefined,
+      note: note?.trim() || "",
+      contact: contactInfo,
+      status: "pending",
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Your request has been recorded. Our team will contact you.",
+      request: requestDoc,
+    });
+  } catch (error) {
+    console.error("Error submitting slot request:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };

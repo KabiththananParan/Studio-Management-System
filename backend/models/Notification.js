@@ -18,7 +18,7 @@ const notificationSchema = new mongoose.Schema({
   notificationType: {
     type: String,
     required: true,
-    enum: ['user', 'booking', 'inventory_booking', 'payment', 'review', 'complaint', 'refund']
+    enum: ['user', 'booking', 'inventory_booking', 'payment', 'review', 'complaint', 'refund', 'slot_request']
   },
   
   // When the notification was marked as read
@@ -37,7 +37,7 @@ const notificationSchema = new mongoose.Schema({
   sourceCollection: {
     type: String,
     required: true,
-    enum: ['users', 'bookings', 'inventorybookings', 'reviews', 'complaints', 'refunds']
+    enum: ['users', 'bookings', 'inventorybookings', 'reviews', 'complaints', 'refunds', 'slotrequests']
   }
 }, {
   timestamps: true

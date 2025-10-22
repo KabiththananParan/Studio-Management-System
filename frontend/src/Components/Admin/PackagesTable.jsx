@@ -17,6 +17,10 @@ const PackagesTable = () => {
     image: '',
     isActive: true
   });
+  const [reportFrom, setReportFrom] = useState("");
+  const [reportTo, setReportTo] = useState("");
+  const [reportFormat, setReportFormat] = useState("csv");
+  const [reportLoading, setReportLoading] = useState(false);
 
   // Fetch all packages
   const fetchPackages = async () => {
@@ -59,6 +63,58 @@ const PackagesTable = () => {
   useEffect(() => {
     fetchPackages();
   }, []);
+
+  const handleGenerateReport = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("No authentication token found. Please log in again.");
+      return;
+    }
+
+    setReportLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (reportFrom) params.append("from", reportFrom);
+      if (reportTo) params.append("to", reportTo);
+      if (reportFormat) params.append("format", reportFormat);
+
+      const res = await axios.get(
+        `http://localhost:5000/api/admin/packages/report?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          responseType: reportFormat === 'csv' ? 'blob' : 'json',
+        }
+      );
+
+      if (reportFormat === 'csv') {
+        const blob = new Blob([res.data], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `packages_report_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        // JSON fallback: open in new tab
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.data, null, 2));
+        const a = document.createElement('a');
+        a.href = dataStr;
+        a.download = `packages_report_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+    } catch (err) {
+      console.error("Error generating report:", err);
+      alert(err.response?.data?.message || "Failed to generate report");
+    } finally {
+      setReportLoading(false);
+    }
+  };
 
   // Add new package
   const handleAddPackage = async () => {
@@ -329,15 +385,53 @@ const PackagesTable = () => {
           <h1 className="text-2xl font-bold text-gray-800">Packages Management</h1>
           <p className="text-gray-600 mt-1">Manage studio packages and pricing</p>
         </div>
-        <button 
-          onClick={handleOpenAddModal}
-          className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-sm"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-          </svg>
-          Add New Package
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2">
+            <input
+              type="date"
+              value={reportFrom}
+              onChange={(e) => setReportFrom(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              title="From date"
+            />
+            <span className="text-gray-500">to</span>
+            <input
+              type="date"
+              value={reportTo}
+              onChange={(e) => setReportTo(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              title="To date"
+            />
+            <select
+              value={reportFormat}
+              onChange={(e) => setReportFormat(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              title="Format"
+            >
+              <option value="csv">CSV</option>
+              <option value="json">JSON</option>
+            </select>
+            <button
+              onClick={handleGenerateReport}
+              disabled={reportLoading}
+              className={`flex items-center px-4 py-2 ${reportLoading ? 'bg-gray-300' : 'bg-indigo-600 hover:bg-indigo-700'} text-white rounded-lg transition-colors shadow-sm`}
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m10 12V4M4 20h16"></path>
+              </svg>
+              {reportLoading ? 'Generating...' : 'Generate Report'}
+            </button>
+          </div>
+          <button 
+            onClick={handleOpenAddModal}
+            className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-sm"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Add New Package
+          </button>
+        </div>
       </div>
       
       <div className="overflow-x-auto">
