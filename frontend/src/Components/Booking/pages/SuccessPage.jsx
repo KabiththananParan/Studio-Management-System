@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Header } from '../components';
+import { buildGoogleCalendarUrl, triggerICSDownload } from '../utils/calendarUtils';
 
 const SuccessPage = () => {
   const location = useLocation();
@@ -166,6 +167,33 @@ const SuccessPage = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Add to Calendar */}
+        <div className="mt-8 bg-white rounded-xl shadow-sm border p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <span className="mr-2">🗓️</span>
+            Add to your Calendar
+          </h3>
+          <p className="text-gray-600 mb-4">Never miss your session. Add this booking to your calendar.</p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <a
+              href={buildGoogleCalendarUrl(booking)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center justify-center"
+            >
+              <span className="mr-2">📅</span>
+              Add to Google Calendar
+            </a>
+            <button
+              onClick={() => triggerICSDownload(booking)}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition flex items-center justify-center"
+            >
+              <span className="mr-2">⬇️</span>
+              Download .ics (Outlook/Apple)
+            </button>
           </div>
         </div>
 

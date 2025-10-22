@@ -9,6 +9,7 @@ import ComplaintForm from './Complaints/ComplaintForm';
 import ComplaintDisplay from './Complaints/ComplaintDisplay';
 import UserInventoryBrowsing from '../User/UserInventoryBrowsing';
 import UserInventoryDashboard from '../User/UserInventoryDashboard';
+import { buildGoogleCalendarUrl, triggerICSDownload } from './Booking/utils/calendarUtils';
 
 // Icons using lucide-react. The user must include the script tag for lucide-react in their HTML.
 // This is a mock component since we're in a single file.
@@ -799,6 +800,25 @@ const BookingsView = ({ isDarkMode = false }) => {
     });
   };
 
+  // Determine if a booking is upcoming (date today or in the future and not cancelled)
+  const isUpcomingBooking = (booking) => {
+    if (!booking?.slot?.date) return false;
+    if (booking.bookingStatus === 'cancelled') return false;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const bookingDate = new Date(booking.slot.date);
+    return bookingDate.getTime() >= todayStart.getTime();
+  };
+
+  // Map dashboard booking shape to calendar utility input
+  const toCalendarBooking = (booking) => ({
+    bookingDate: booking.slot?.date,
+    bookingTime: booking.slot?.time,
+    packageName: booking.package?.name || booking.packageName || 'Studio Session',
+    bookingReference: booking.bookingReference || booking._id,
+    customerInfo: booking.customerInfo,
+  });
+
   if (loading) {
     return (
       <div className="p-6 md:p-8">
@@ -995,6 +1015,27 @@ const BookingsView = ({ isDarkMode = false }) => {
                             >
                               📄 PDF
                             </button>
+                            {/* Add to Calendar - for upcoming bookings */}
+                            {isUpcomingBooking(booking) && (
+                              <>
+                                <a
+                                  href={buildGoogleCalendarUrl(toCalendarBooking(booking))}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 transition-colors duration-200"
+                                  title="Add to Google Calendar"
+                                >
+                                  📅 Google
+                                </a>
+                                <button
+                                  onClick={() => triggerICSDownload(toCalendarBooking(booking))}
+                                  className="border border-gray-300 text-gray-700 px-2 py-1 rounded text-xs hover:bg-gray-50 transition-colors duration-200"
+                                  title="Download .ics for Outlook/Apple"
+                                >
+                                  ⬇️ .ics
+                                </button>
+                              </>
+                            )}
                           </div>
                         )}
 
