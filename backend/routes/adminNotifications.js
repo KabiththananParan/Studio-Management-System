@@ -7,6 +7,7 @@ import Review from "../models/Review.js";
 import Complaint from "../models/Complaint.js";
 import Refund from "../models/Refund.js";
 import Notification from "../models/Notification.js";
+import SlotRequest from "../models/SlotRequest.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -23,7 +24,8 @@ router.get("/notifications", protect, admin, async (req, res) => {
       recentInventoryBookings,
       recentReviews,
       recentComplaints,
-      recentRefunds
+      recentRefunds,
+      recentSlotRequests
     ] = await Promise.all([
       // New user registrations (last 7 days)
       User.find({
@@ -71,7 +73,15 @@ router.get("/notifications", protect, admin, async (req, res) => {
       })
       .sort({ createdAt: -1 })
       .limit(10)
-      .select('customerName amount status reason createdAt bookingId')
+      .select('customerName amount status reason createdAt bookingId'),
+
+      // Recent slot requests (last 10 days)
+      SlotRequest.find({
+        createdAt: { $gte: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) }
+      })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('packageName preferredDate status note contact createdAt')
     ]);
 
     // Get read notifications for this admin
@@ -108,7 +118,7 @@ router.get("/notifications", protect, admin, async (req, res) => {
       let message = `${booking.customerInfo.name} made a studio booking`;
       let icon = '📸';
       
-      if (booking.paymentStatus === 'Paid') {
+      if (booking.paymentStatus === 'Paid' || booking.paymentStatus === 'completed') {
         notificationType = 'studio_payment';
         message = `Payment received for studio booking by ${booking.customerInfo.name}`;
         icon = '💳';
@@ -118,7 +128,7 @@ router.get("/notifications", protect, admin, async (req, res) => {
       notifications.push({
         id: notificationId,
         type: notificationType,
-        title: booking.paymentStatus === 'Paid' ? 'Studio Payment Received' : 'New Studio Booking',
+  title: (booking.paymentStatus === 'Paid' || booking.paymentStatus === 'completed') ? 'Studio Payment Received' : 'New Studio Booking',
         message,
         details: {
           bookingId: booking.bookingId,
@@ -129,8 +139,8 @@ router.get("/notifications", protect, admin, async (req, res) => {
         },
         timestamp: booking.createdAt,
         icon,
-        color: booking.paymentStatus === 'Paid' ? 'green' : 'purple',
-        priority: booking.paymentStatus === 'Paid' ? 'high' : 'medium',
+        color: (booking.paymentStatus === 'Paid' || booking.paymentStatus === 'completed') ? 'green' : 'purple',
+        priority: (booking.paymentStatus === 'Paid' || booking.paymentStatus === 'completed') ? 'high' : 'medium',
         isRead: readNotificationIds.has(notificationId)
       });
     });
@@ -141,7 +151,7 @@ router.get("/notifications", protect, admin, async (req, res) => {
       let message = `${booking.customerInfo.name} made an equipment rental`;
       let icon = '📦';
       
-      if (booking.paymentStatus === 'Paid') {
+      if (booking.paymentStatus === 'Paid' || booking.paymentStatus === 'completed') {
         notificationType = 'inventory_payment';
         message = `Payment received for equipment rental by ${booking.customerInfo.name}`;
         icon = '💰';
@@ -151,7 +161,7 @@ router.get("/notifications", protect, admin, async (req, res) => {
       notifications.push({
         id: notificationId,
         type: notificationType,
-        title: booking.paymentStatus === 'Paid' ? 'Rental Payment Received' : 'New Equipment Rental',
+  title: (booking.paymentStatus === 'Paid' || booking.paymentStatus === 'completed') ? 'Rental Payment Received' : 'New Equipment Rental',
         message,
         details: {
           bookingId: booking.bookingId,
@@ -162,8 +172,8 @@ router.get("/notifications", protect, admin, async (req, res) => {
         },
         timestamp: booking.createdAt,
         icon,
-        color: booking.paymentStatus === 'Paid' ? 'green' : 'indigo',
-        priority: booking.paymentStatus === 'Paid' ? 'high' : 'medium',
+        color: (booking.paymentStatus === 'Paid' || booking.paymentStatus === 'completed') ? 'green' : 'indigo',
+        priority: (booking.paymentStatus === 'Paid' || booking.paymentStatus === 'completed') ? 'high' : 'medium',
         isRead: readNotificationIds.has(notificationId)
       });
     });
@@ -232,6 +242,29 @@ router.get("/notifications", protect, admin, async (req, res) => {
       });
     });
 
+    // Add slot request notifications
+    recentSlotRequests.forEach(reqDoc => {
+      const notificationId = `slotreq_${reqDoc._id}`;
+      notifications.push({
+        id: notificationId,
+        type: 'slot_request',
+        title: 'New Slot Request',
+        message: `${reqDoc.contact?.name || 'A user'} requested a slot for ${reqDoc.packageName}`,
+        details: {
+          package: reqDoc.packageName,
+          preferredDate: reqDoc.preferredDate,
+          status: reqDoc.status,
+          note: reqDoc.note,
+          contact: reqDoc.contact
+        },
+        timestamp: reqDoc.createdAt,
+        icon: '🗓️',
+        color: 'cyan',
+        priority: 'medium',
+        isRead: readNotificationIds.has(notificationId)
+      });
+    });
+
     // Sort notifications by timestamp (newest first)
     notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
@@ -248,6 +281,7 @@ router.get("/notifications", protect, admin, async (req, res) => {
       reviews: unreadNotifications.filter(n => n.type === 'new_review').length,
       complaints: unreadNotifications.filter(n => n.type === 'new_complaint').length,
       refunds: unreadNotifications.filter(n => n.type === 'refund_request').length,
+      slot_requests: unreadNotifications.filter(n => n.type === 'slot_request').length,
       high_priority: unreadNotifications.filter(n => n.priority === 'high').length
     };
 
@@ -303,6 +337,10 @@ router.put("/notifications/:id/read", protect, admin, async (req, res) => {
         notificationType = 'refund';
         sourceCollection = 'refunds';
         sourceId = notificationId.replace('refund_', '');
+      } else if (notificationId.startsWith('slotreq_')) {
+        notificationType = 'slot_request';
+        sourceCollection = 'slotrequests';
+        sourceId = notificationId.replace('slotreq_', '');
       } else {
         console.warn(`Unknown notification ID format: ${notificationId}`);
         return res.json({ message: "Notification marked as read" });
@@ -390,6 +428,10 @@ router.put("/notifications/mark-all-read", protect, admin, async (req, res) => {
             notificationType = 'refund';
             sourceCollection = 'refunds';
             sourceId = notificationId.replace('refund_', '');
+          } else if (notificationId.startsWith('slotreq_')) {
+            notificationType = 'slot_request';
+            sourceCollection = 'slotrequests';
+            sourceId = notificationId.replace('slotreq_', '');
           } else {
             console.warn(`Unknown notification ID format: ${notificationId}`);
             continue;
