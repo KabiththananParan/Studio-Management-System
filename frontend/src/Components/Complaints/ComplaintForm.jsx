@@ -12,6 +12,9 @@ const ComplaintForm = ({ onSubmit, onCancel, existingComplaint = null, isDarkMod
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [tone, setTone] = useState('polite'); // polite | professional | firm | concise
+  const [suggestion, setSuggestion] = useState('');
+  const [generating, setGenerating] = useState(false);
 
   const isEditing = Boolean(existingComplaint);
 
@@ -134,6 +137,92 @@ const ComplaintForm = ({ onSubmit, onCancel, existingComplaint = null, isDarkMod
       console.error('Error submitting complaint:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Local complaint text helper (no network calls)
+  const generateComplaintSuggestion = () => {
+    const catMeta = categories.find(c => c.value === formData.category);
+    const categoryLabel = catMeta?.label || 'General';
+    const priorityLabel = formData.priority || 'medium';
+    const title = formData.title?.trim();
+    const bookingLabel = bookings.find(b => b._id === formData.bookingId)?.displayText;
+
+    const toneSets = {
+      polite: {
+        opener: 'I am writing to report an issue I encountered',
+        bodyIntro: 'Here are the details for your review',
+        impactIntro: 'This has impacted me as follows',
+        ask: 'I kindly request your assistance to resolve this matter',
+        close: 'Thank you for your attention to this.'
+      },
+      professional: {
+        opener: 'I wish to formally report the following concern',
+        bodyIntro: 'Please find the relevant details below',
+        impactIntro: 'Observed impact',
+        ask: 'Please advise on the next steps to resolve this',
+        close: 'Thank you for your prompt attention.'
+      },
+      firm: {
+        opener: 'I need to report a significant issue that requires prompt attention',
+        bodyIntro: 'Key details are as follows',
+        impactIntro: 'Impact to my experience',
+        ask: 'I expect a clear resolution timeline and next steps',
+        close: 'Looking forward to a timely resolution.'
+      },
+      concise: {
+        opener: 'Reporting an issue',
+        bodyIntro: 'Details',
+        impactIntro: 'Impact',
+        ask: 'Request',
+        close: 'Thanks.'
+      }
+    };
+
+    const t = toneSets[tone] || toneSets.polite;
+
+    const lines = [];
+    const subject = title ? ` regarding "${title}"` : '';
+    const ctx = [];
+    ctx.push(`Category: ${categoryLabel}`);
+    if (bookingLabel) ctx.push(`Related booking: ${bookingLabel}`);
+    ctx.push(`Priority: ${priorityLabel.charAt(0).toUpperCase() + priorityLabel.slice(1)}`);
+
+    // Opener
+    lines.push(`${t.opener}${subject}.`);
+
+    // Context section
+    lines.push(`${t.bodyIntro}:`);
+    lines.push(`- ${ctx.join(' | ')}`);
+
+    // Guidance placeholders to help the user quickly edit
+    lines.push(`${t.impactIntro}:`);
+    lines.push(`- Describe what happened, when, and who was involved.`);
+    lines.push(`- Explain the inconvenience or cost (if any).`);
+
+    // Ask / resolution
+    lines.push(`${t.ask}.`);
+    lines.push(`- Proposed resolution (e.g., refund, reschedule, follow-up).`);
+    lines.push(t.close);
+
+    const result = tone === 'concise' ? lines.slice(0, 6).join('\n') : lines.join('\n');
+    return result.trim();
+  };
+
+  const handleGenerate = () => {
+    // Require minimal fields to tailor output
+    const newErr = { ...errors };
+    if (!formData.title.trim()) newErr.title = newErr.title || 'Please add a brief title to tailor the suggestion';
+    if (!formData.category) newErr.category = newErr.category || 'Please select a category';
+    setErrors(newErr);
+    if (Object.keys(newErr).length && (!formData.category || !formData.title.trim())) return;
+
+    setGenerating(true);
+    try {
+      const text = generateComplaintSuggestion();
+      setSuggestion(text);
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -278,6 +367,54 @@ const ComplaintForm = ({ onSubmit, onCancel, existingComplaint = null, isDarkMod
           <label className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
             Detailed Description *
           </label>
+          {/* AI Suggestion Helper */}
+          <div className="mb-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Need help?</span>
+              <select
+                value={tone}
+                onChange={(e) => setTone(e.target.value)}
+                className={`text-sm border rounded-md px-2 py-1 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
+              >
+                <option value="polite">Polite</option>
+                <option value="professional">Professional</option>
+                <option value="firm">Firm</option>
+                <option value="concise">Concise</option>
+              </select>
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={generating}
+                className={`text-sm px-3 py-1 rounded-md ${generating ? 'bg-gray-300' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
+              >
+                {generating ? 'Generating…' : 'Suggest complaint'}
+              </button>
+            </div>
+          </div>
+
+          {suggestion && (
+            <div className={`mb-2 border rounded-md p-3 ${isDarkMode ? 'border-purple-300/40 bg-purple-900/20' : 'border-purple-200 bg-purple-50'}`}>
+              <div className={`text-xs mb-1 ${isDarkMode ? 'text-purple-200' : 'text-purple-800'}`}>Suggested text</div>
+              <pre className={`text-sm whitespace-pre-wrap ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>{suggestion}</pre>
+              <div className="mt-2 flex gap-2 justify-end">
+                <button
+                  type="button"
+                  className={`text-sm px-3 py-1 border rounded-md ${isDarkMode ? 'border-gray-600 hover:bg-gray-700 text-gray-200' : 'border-gray-300 hover:bg-white'}`}
+                  onClick={() => setSuggestion('')}
+                >
+                  Dismiss
+                </button>
+                <button
+                  type="button"
+                  className="text-sm px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  onClick={() => setFormData({ ...formData, description: suggestion })}
+                >
+                  Use this
+                </button>
+              </div>
+            </div>
+          )}
+
           <textarea
             name="description"
             value={formData.description}

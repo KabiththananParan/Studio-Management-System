@@ -2,6 +2,7 @@ import Slot from "../models/Slot.js";
 import Package from "../models/Package.js";
 import SlotRequest from "../models/SlotRequest.js";
 import User from "../models/User.js";
+import mongoose from "mongoose";
 
 // @desc    Get available slots for a specific package (public/user access)
 // @route   GET /api/user/slots/:packageId
@@ -313,6 +314,16 @@ export const submitSlotRequest = async (req, res) => {
     const { packageId } = req.params;
     const { preferredDate, note, contact } = req.body || {};
 
+    // Validate package id format early to avoid CastError 500s
+    if (!mongoose.Types.ObjectId.isValid(packageId)) {
+      return res.status(400).json({ message: "Invalid package id" });
+    }
+
+    // Validate preferred date (frontend should send it, but double-check here)
+    if (!preferredDate || isNaN(Date.parse(preferredDate))) {
+      return res.status(400).json({ message: "A valid preferredDate (YYYY-MM-DD) is required" });
+    }
+
     // Verify package exists and is active
     const packageDoc = await Package.findById(packageId);
     if (!packageDoc || !packageDoc.isActive) {
@@ -337,7 +348,7 @@ export const submitSlotRequest = async (req, res) => {
       userId: req.user?.id || undefined,
       packageId: packageDoc._id,
       packageName: packageDoc.name,
-      preferredDate: preferredDate ? new Date(preferredDate) : undefined,
+      preferredDate: new Date(preferredDate),
       note: note?.trim() || "",
       contact: contactInfo,
       status: "pending",
@@ -349,7 +360,7 @@ export const submitSlotRequest = async (req, res) => {
       request: requestDoc,
     });
   } catch (error) {
-    console.error("Error submitting slot request:", error);
+    console.error("Error submitting slot request:", error?.stack || error);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
