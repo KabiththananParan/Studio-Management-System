@@ -75,11 +75,12 @@ const AdminRefunds = () => {
         body: JSON.stringify(approvalData)
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to approve refund');
-      }
-
       const data = await response.json();
+      if (!response.ok) {
+        // If server provided a message, surface it
+        const serverMsg = data?.message || data?.error || 'Failed to approve refund';
+        throw new Error(serverMsg);
+      }
       if (data.demo) {
         alert('🎭 DEMO MODE: Refund approved successfully!\n\nNote: This is a demonstration - no actual money transfer occurred.');
       } else {
@@ -114,8 +115,10 @@ const AdminRefunds = () => {
         body: JSON.stringify({ adminNotes })
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error('Failed to reject refund');
+        const serverMsg = data?.message || data?.error || 'Failed to reject refund';
+        throw new Error(serverMsg);
       }
 
       alert('🎭 DEMO MODE: Refund rejected successfully!\n\nNote: This is a demonstration of the refund system workflow.');
@@ -149,11 +152,11 @@ const AdminRefunds = () => {
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to process refund');
-      }
-
       const data = await response.json();
+      if (!response.ok) {
+        const serverMsg = data?.message || data?.error || 'Failed to process refund';
+        throw new Error(serverMsg);
+      }
       if (data.demo) {
         alert('🎭 DEMO MODE: Refund processed and completed!\n\nNote: This demonstrates the final step - in reality, money would be transferred to customer account.');
       } else {

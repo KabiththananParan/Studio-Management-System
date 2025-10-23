@@ -585,6 +585,7 @@ export const approveRefund = async (req, res) => {
     const { id } = req.params;
     const { approvedAmount, adminNotes } = req.body;
 
+    console.log(`ADMIN APPROVE - admin=${req.user?.id} refundId=${id} body=`, req.body);
     const refund = await Refund.findById(id).populate('bookingId userId');
     
     if (!refund) {
@@ -601,8 +602,21 @@ export const approveRefund = async (req, res) => {
       });
     }
 
-    // Validate approved amount
-    if (approvedAmount > refund.requestedAmount) {
+    // Normalize and validate approved amount
+    const parsedApproved = (approvedAmount === undefined || approvedAmount === null)
+      ? refund.requestedAmount
+      : Number(approvedAmount);
+
+    if (Number.isNaN(parsedApproved)) {
+      console.log('ADMIN APPROVE - invalid approvedAmount:', approvedAmount);
+      return res.status(400).json({
+        success: false,
+        message: "Invalid approvedAmount provided"
+      });
+    }
+
+    if (parsedApproved > refund.requestedAmount) {
+      console.log('ADMIN APPROVE - approvedAmount exceeds requested:', parsedApproved, '>', refund.requestedAmount);
       return res.status(400).json({
         success: false,
         message: "Approved amount cannot exceed requested amount"
@@ -610,9 +624,9 @@ export const approveRefund = async (req, res) => {
     }
 
     // Update refund status
-    refund.status = 'approved';
-    refund.approvedAmount = approvedAmount || refund.requestedAmount;
-    refund.adminNotes = adminNotes + ' [DEMO MODE - No actual money transfer]';
+  refund.status = 'approved';
+  refund.approvedAmount = parsedApproved;
+  refund.adminNotes = (adminNotes || '') + ' [DEMO MODE - No actual money transfer]';
     refund.approvedDate = new Date();
     refund.processedBy = req.user.id;
 
@@ -629,14 +643,15 @@ export const approveRefund = async (req, res) => {
       console.log(`Booking ${refund.bookingId._id} status updated: paymentStatus='refund_approved', bookingStatus='refunded'`);
     }
 
+    const respRefund = await Refund.findById(id)
+      .populate('userId', 'name email')
+      .populate('bookingId', 'packageName bookingDate totalAmount');
+
     res.json({
       success: true,
-      message: 'Refund approved successfully (DEMO MODE)',
       demo: true,
       message: "Refund request approved successfully",
-      refund: await Refund.findById(id)
-        .populate('userId', 'name email')
-        .populate('bookingId', 'packageName bookingDate totalAmount')
+      refund: respRefund
     });
   } catch (error) {
     console.error("Error approving refund:", error);
